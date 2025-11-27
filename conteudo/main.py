@@ -1,29 +1,19 @@
 import pygame
 import random
+import os
+from config import LARGURA, ALTURA, FPS
+from entidade import Entidade
+from robo import RoboLento, RoboZigueZague, RoboRapido
 
 pygame.init()
 
-LARGURA = 800
-ALTURA = 600
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
+CAMINHO_BACKGROUND = os.path.join(os.path.dirname(__file__), "assets", "images", "background-teste.png")
+BACKGROUND = pygame.image.load(CAMINHO_BACKGROUND)
+BACKGROUND = pygame.transform.scale(BACKGROUND, (LARGURA, ALTURA))
+
 pygame.display.set_caption("Robot Defense - Template")
-
-FPS = 60
 clock = pygame.time.Clock()
-
-
-# CLASSE BASE
-class Entidade(pygame.sprite.Sprite):
-    def __init__(self, x, y, velocidade):
-        super().__init__()
-        self.velocidade = velocidade
-        self.image = pygame.Surface((40, 40))
-        self.rect = self.image.get_rect(center=(x, y))
-
-    def mover(self, dx, dy):
-        self.rect.x += dx
-        self.rect.y += dy
-
 
 # JOGADOR
 class Jogador(Entidade):
@@ -48,7 +38,6 @@ class Jogador(Entidade):
         self.rect.x = max(0, min(self.rect.x, LARGURA - 40))
         self.rect.y = max(0, min(self.rect.y, ALTURA - 40))
 
-
 # TIRO (DO JOGADOR)
 class Tiro(Entidade):
     def __init__(self, x, y):
@@ -59,49 +48,6 @@ class Tiro(Entidade):
         self.rect.y -= self.velocidade
         if self.rect.y < 0:
             self.kill()
-
-
-# ROBO BASE
-class Robo(Entidade):
-    def __init__(self, x, y, velocidade):
-        super().__init__(x, y, velocidade)
-        self.image.fill((255, 0, 0))  # vermelho
-
-    def atualizar_posicao(self):
-        raise NotImplementedError
-
-# ROBO LENTO
-class RoboLento(Robo):
-    def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 2)
-        self.image.fill((255, 0, 111))
-    
-    def atualizar_posicao(self):
-        self.rect.y += self.velocidade
-
-    def update(self):
-        self.atualizar_posicao()
-        if self.rect.y > ALTURA:
-            self.kill()
-
-# ROBO EXEMPLO — ZigueZague
-class RoboZigueZague(Robo):
-    def __init__(self, x, y):
-        super().__init__(x, y, velocidade=3)
-        self.direcao = 1
-
-    def atualizar_posicao(self):
-        self.rect.y += self.velocidade
-        self.rect.x += self.direcao * 3
-
-        if self.rect.x <= 0 or self.rect.x >= LARGURA - 40:
-            self.direcao *= -1
-
-    def update(self):
-        self.atualizar_posicao()
-        if self.rect.y > ALTURA:
-            self.kill()
-
 
 todos_sprites = pygame.sprite.Group()
 inimigos = pygame.sprite.Group()
@@ -138,6 +84,10 @@ while rodando:
         roboLento = RoboLento(random.randint(40, LARGURA - 40), -40)
         todos_sprites.add(roboLento)
         inimigos.add(roboLento)
+    if spawn_timer % 80 == 0:
+        roboRapido = RoboRapido(random.randint(40, LARGURA - 40), -40)
+        todos_sprites.add(roboRapido)
+        inimigos.add(roboRapido)
 
     # colisão tiro x robô
     colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
@@ -155,6 +105,7 @@ while rodando:
 
     # desenhar
     TELA.fill((20, 20, 20))
+    TELA.blit(BACKGROUND, (0, 0))
     todos_sprites.draw(TELA)
 
     #Painel de pontos e vida
