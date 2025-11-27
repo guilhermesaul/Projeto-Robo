@@ -2,7 +2,7 @@ import pygame
 import random
 import os
 from config import LARGURA, ALTURA, FPS
-from robo import RoboLento, RoboZigueZague, RoboRapido
+from robo import RoboLento, RoboZigueZague, RoboRapido, RoboCiclico
 from player import Jogador, Tiro
 
 pygame.init()
@@ -42,18 +42,23 @@ while rodando:
     # timer de entrada dos inimigos
     spawn_timer += 1
     
+    # if spawn_timer % 40 == 0:
+    #     roboLento = RoboLento(random.randint(40, LARGURA - 40), -40)
+    #     todos_sprites.add(roboLento)
+    #     inimigos.add(roboLento)
+    # if spawn_timer % 60 == 0:
+    #     roboRapido = RoboRapido(random.randint(40, LARGURA - 40), -40)
+    #     todos_sprites.add(roboRapido)
+    #     inimigos.add(roboRapido)
+    # if spawn_timer % 80 == 0:
+    #     robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40)
+    #     todos_sprites.add(robo)
+    #     inimigos.add(robo)
     if spawn_timer % 40 == 0:
-        roboLento = RoboLento(random.randint(40, LARGURA - 40), -40)
-        todos_sprites.add(roboLento)
-        inimigos.add(roboLento)
-    if spawn_timer % 60 == 0:
-        roboRapido = RoboRapido(random.randint(40, LARGURA - 40), -40)
-        todos_sprites.add(roboRapido)
-        inimigos.add(roboRapido)
-    if spawn_timer % 80 == 0:
-        robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40)
-        todos_sprites.add(robo)
-        inimigos.add(robo)
+        roboCiclico = RoboCiclico(random.randint(60, LARGURA - 60), -40)
+        todos_sprites.add(roboCiclico)
+        inimigos.add(roboCiclico)
+
 
     # colisão tiro x robô
     colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
@@ -77,7 +82,7 @@ while rodando:
     #Painel de pontos e vida
     font = pygame.font.SysFont(None, 30)
     if jogador.vida < 2:
-     texto = font.render(f"Vida: {jogador.vida}  |  Pontos: {pontos}", True, (0, 0, 255))
+     texto = font.render(f"Vida: {jogador.vida}  |  Pontos: {pontos}", True, (255, 0, 0))
     else:
         texto = font.render(f"Vida: {jogador.vida}  |  Pontos: {pontos}", True, (255, 255, 255))
     TELA.blit(texto, (10, 10))

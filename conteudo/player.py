@@ -5,7 +5,7 @@ from entidade import Entidade
 # JOGADOR
 class Jogador(Entidade):
     def __init__(self, x, y):
-        super().__init__(x, y, 8)
+        super().__init__(x, y, 7)
         self.image.fill((0, 255, 0))  # verde
         self.vida = 5
 
