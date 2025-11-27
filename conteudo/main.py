@@ -70,6 +70,19 @@ class Robo(Entidade):
     def atualizar_posicao(self):
         raise NotImplementedError
 
+# ROBO LENTO
+class RoboLento(Robo):
+    def __init__(self, x, y):
+        super().__init__(x, y, velocidade = 2)
+        self.image.fill((255, 0, 111))
+    
+    def atualizar_posicao(self):
+        self.rect.y += self.velocidade
+
+    def update(self):
+        self.atualizar_posicao()
+        if self.rect.y > ALTURA:
+            self.kill()
 
 # ROBO EXEMPLO — ZigueZague
 class RoboZigueZague(Robo):
@@ -116,11 +129,15 @@ while rodando:
 
     # timer de entrada dos inimigos
     spawn_timer += 1
-    if spawn_timer > 40:
+    
+    if spawn_timer % 40 == 0:
         robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40)
         todos_sprites.add(robo)
         inimigos.add(robo)
-        spawn_timer = 0
+    if spawn_timer % 60 == 0:
+        roboLento = RoboLento(random.randint(40, LARGURA - 40), -40)
+        todos_sprites.add(roboLento)
+        inimigos.add(roboLento)
 
     # colisão tiro x robô
     colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
