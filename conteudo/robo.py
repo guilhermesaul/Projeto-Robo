@@ -14,7 +14,7 @@ class Robo(Entidade):
 # ROBO LENTO
 class RoboLento(Robo):
     def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 2)
+        super().__init__(x, y, velocidade = 1.5)
         self.image.fill((255, 0, 111))
     
     def atualizar_posicao(self):
@@ -28,7 +28,7 @@ class RoboLento(Robo):
 # ROBO LENTO
 class RoboRapido(Robo):
     def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 5)
+        super().__init__(x, y, velocidade = 3)
         self.image.fill((255, 0, 0))
     
     def atualizar_posicao(self):
@@ -42,7 +42,7 @@ class RoboRapido(Robo):
 # ROBO EXEMPLO — ZigueZague
 class RoboZigueZague(Robo):
     def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 3)
+        super().__init__(x, y, velocidade = 2)
         self.direcao = 1
 
     def atualizar_posicao(self):
