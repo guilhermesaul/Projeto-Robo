@@ -19,16 +19,7 @@ class Robo(Entidade):
 class RoboLento(Robo):
     def __init__(self, x, y): 
         super().__init__(x, y, velocidade = 1.5)
-        
-        PASTA_PRINCIPAL = os.path.dirname(__file__)
-        PASTA_IMAGENS = os.path.join(PASTA_PRINCIPAL, "assets", "images")
-
-        CAMINHO_ROBOLENTO = os.path.join(PASTA_IMAGENS, "image.png")
-        print("Carregando imagem:", CAMINHO_ROBOLENTO)
-
-        IMG_ROBOLENTO = pygame.image.load(CAMINHO_ROBOLENTO).convert_alpha()
-        self.image = pygame.transform.scale(IMG_ROBOLENTO, (64, 64))
-        self.rect = self.image.get_rect(center=(x, y))
+        self.image.fill((100, 100, 255))  # azul claro
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
