@@ -1,4 +1,7 @@
+import pygame
 import math
+import os
+import random
 from entidade import Entidade
 from config import LARGURA, ALTURA
 
@@ -14,10 +17,19 @@ class Robo(Entidade):
 
 # ROBO LENTO
 class RoboLento(Robo):
-    def __init__(self, x, y):
+    def __init__(self, x, y): 
         super().__init__(x, y, velocidade = 1.5)
-        self.image.fill((255, 0, 111))
-    
+        
+        PASTA_PRINCIPAL = os.path.dirname(__file__)
+        PASTA_IMAGENS = os.path.join(PASTA_PRINCIPAL, "assets", "images")
+
+        CAMINHO_ROBOLENTO = os.path.join(PASTA_IMAGENS, "image.png")
+        print("Carregando imagem:", CAMINHO_ROBOLENTO)
+
+        IMG_ROBOLENTO = pygame.image.load(CAMINHO_ROBOLENTO).convert_alpha()
+        self.image = pygame.transform.scale(IMG_ROBOLENTO, (64, 64))
+        self.rect = self.image.get_rect(center=(x, y))
+
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
 
@@ -26,7 +38,7 @@ class RoboLento(Robo):
         if self.rect.y > ALTURA:
             self.kill()
 
-# ROBO LENTO
+# ROBO RAPIDO
 class RoboRapido(Robo):
     def __init__(self, x, y):
         super().__init__(x, y, velocidade = 3)
@@ -46,6 +58,7 @@ class RoboZigueZague(Robo):
         super().__init__(x, y, velocidade = 2)
         self.direcao = 1
 
+
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
         self.rect.x += self.direcao * 3
@@ -57,8 +70,10 @@ class RoboZigueZague(Robo):
         self.atualizar_posicao()
         if self.rect.y > ALTURA:
             self.kill()
+            
+    
 
-#ROBO CÍCLICO
+#ROBO CICLICO
 
 
 class RoboCiclico(Robo):
@@ -96,3 +111,80 @@ class RoboCiclico(Robo):
         self.atualizar_posicao()
         if self.rect.y > ALTURA:
             self.kill()
+
+# ROBO SALTADOR — faz "pulos" aleatórios
+class RoboSaltador(Robo):
+    def __init__(self, x, y):
+        super().__init__(x, y, velocidade = 2)
+        self.cor_base = (255, 165, 0)
+        self.image.fill(self.cor_base)  # laranja
+        self.velocidade_vertical = self.velocidade
+        self.gravidade = 0.3
+        self.posicao_y = float(y)
+        self.tempo_teleporte = 0
+        self.intervalo_teleporte_minimo = 50
+        self.intervalo_teleporte_maximo = 140
+        self.proximo_teleporte = random.randint(self.intervalo_teleporte_minimo, self.intervalo_teleporte_maximo)
+        self.flash_duracao = 10
+        self.flash_timer = 0
+
+    def atualizar_posicao(self):
+        # contador para teleporte
+        self.tempo_teleporte += 1
+        if self.tempo_teleporte >= self.proximo_teleporte:
+            novo_x = random.randint(0, LARGURA - 40)
+            novo_y = random.randint(0, ALTURA // 2)
+            self.rect.x = novo_x
+            self.posicao_y = float(novo_y)
+            self.rect.y = novo_y
+            self.tempo_teleporte = 0
+            self.proximo_teleporte = random.randint(self.intervalo_teleporte_minimo, self.intervalo_teleporte_maximo)
+            self.flash_timer = self.flash_duracao
+
+        # atualização da posição vertical (descida leve)
+        self.velocidade_vertical += self.gravidade
+        if self.velocidade_vertical > 4:
+            self.velocidade_vertical = 4
+        self.posicao_y += self.velocidade_vertical
+        self.rect.y = int(self.posicao_y)
+
+        # efeito de flash alternando cor durante o teleporte
+        if self.flash_timer > 0:
+            if self.flash_timer % 2 == 0:
+                self.image.fill((255, 255, 255))  # flash branco
+            else:
+                self.image.fill(self.cor_base)
+            self.flash_timer -= 1
+        else:
+            self.image.fill(self.cor_base)
+
+    def update(self):
+        self.atualizar_posicao()
+        # se sair por baixo ou bater no topo, mata
+        if self.rect.y > ALTURA or self.rect.y < -60:
+            self.kill()
+
+# ROBO CAÇADOR — segue o jogador
+class RoboCacador(Robo):
+    def __init__(self, x, y, alvo):
+        super().__init__(x, y, velocidade = 2.2)
+        self.image.fill((200, 0, 200))  # magenta
+        self.alvo = alvo
+
+    def atualizar_posicao(self):
+        diferenca_x = self.alvo.rect.centerx - self.rect.centerx
+        diferenca_y = self.alvo.rect.centery - self.rect.centery
+        distancia = math.hypot(diferenca_x, diferenca_y)
+        if distancia > 0:
+            normal_x = diferenca_x / distancia
+            normal_y = diferenca_y / distancia
+            self.rect.x += normal_x * self.velocidade * 2
+            self.rect.y += normal_y * self.velocidade
+        else:
+            self.rect.y += self.velocidade
+
+    def update(self):
+        self.atualizar_posicao()
+        if self.rect.y > ALTURA + 80 or self.rect.y < -80:
+            self.kill()
+
