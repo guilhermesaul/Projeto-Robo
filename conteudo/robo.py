@@ -5,20 +5,53 @@ import random
 from entidade import Entidade
 from config import LARGURA, ALTURA
 
-
 # ROBO BASE
 class Robo(Entidade):
-    def __init__(self, x, y, velocidade):
+    def __init__(self, x, y, velocidade, grupo_tiros=None):
         super().__init__(x, y, velocidade)
         self.image.fill((255, 255, 255))  # branco
+        # grupo onde os tiros dos robôs serão adicionados (deve ser um pygame.sprite.Group)
+        self.grupo_tiros = grupo_tiros
+        # timer aleatório para atirar (em frames)
+        self.tiro_timer = random.randint(40, 160)
+        # velocidade dos tiros dos robôs (valor positivo -> vai para baixo)
+        self.vel_tiro = 6
 
     def atualizar_posicao(self):
         raise NotImplementedError
 
+    def tentar_atirar(self):
+        # decrementa e, quando chega a zero, dispara e reseta o timer
+        if self.grupo_tiros is None:
+            return
+
+        self.tiro_timer -= 1
+        if self.tiro_timer <= 0:
+            tiro = TiroRobo(self.rect.centerx, self.rect.bottom, velocidade=self.vel_tiro)
+            self.grupo_tiros.add(tiro)
+            # reseta timer com variação para não ficar previsível
+            self.tiro_timer = random.randint(50, 180)
+
+
+# TIRO DO ROBO
+class TiroRobo(Entidade):
+    def __init__(self, x, y, velocidade=6):
+        super().__init__(x, y, velocidade)
+        # usa superfície menor para ficar mais parecido com um tiro
+        self.image = pygame.Surface((6, 12))
+        self.image.fill((255, 0, 0))  # vermelho
+        self.rect = self.image.get_rect(center=(x, y))
+
+    def update(self):
+        self.rect.y += self.velocidade
+        if self.rect.y > ALTURA:
+            self.kill()
+
+
 # ROBO LENTO
 class RoboLento(Robo):
-    def __init__(self, x, y): 
-        super().__init__(x, y, velocidade = 1.5)
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade = 1.5, grupo_tiros=grupo_tiros)
         self.image.fill((100, 100, 255))  # azul claro
 
     def atualizar_posicao(self):
@@ -26,29 +59,32 @@ class RoboLento(Robo):
 
     def update(self):
         self.atualizar_posicao()
+        self.tentar_atirar()
         if self.rect.y > ALTURA:
             self.kill()
 
+
 # ROBO RAPIDO
 class RoboRapido(Robo):
-    def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 3)
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade = 3, grupo_tiros=grupo_tiros)
         self.image.fill((255, 0, 0))
-    
+
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
 
     def update(self):
         self.atualizar_posicao()
+        self.tentar_atirar()
         if self.rect.y > ALTURA:
             self.kill()
 
+
 # ROBO EXEMPLO — ZigueZague
 class RoboZigueZague(Robo):
-    def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 2)
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade = 2, grupo_tiros=grupo_tiros)
         self.direcao = 1
-
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -59,18 +95,16 @@ class RoboZigueZague(Robo):
 
     def update(self):
         self.atualizar_posicao()
+        self.tentar_atirar()
         if self.rect.y > ALTURA:
             self.kill()
-            
-    
-
-#ROBO CICLICO
 
 
+# ROBO CICLICO
 class RoboCiclico(Robo):
-    def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 1)
-        self.image.fill((0, 128, 255))  
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade = 1, grupo_tiros=grupo_tiros)
+        self.image.fill((0, 128, 255))
         self.angulo = 0
         self.raio = 60
 
@@ -100,13 +134,15 @@ class RoboCiclico(Robo):
 
     def update(self):
         self.atualizar_posicao()
+        self.tentar_atirar()
         if self.rect.y > ALTURA:
             self.kill()
 
+
 # ROBO SALTADOR — faz "pulos" aleatórios
 class RoboSaltador(Robo):
-    def __init__(self, x, y):
-        super().__init__(x, y, velocidade = 2)
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade = 2, grupo_tiros=grupo_tiros)
         self.cor_base = (255, 165, 0)
         self.image.fill(self.cor_base)  # laranja
         self.velocidade_vertical = self.velocidade
@@ -151,14 +187,16 @@ class RoboSaltador(Robo):
 
     def update(self):
         self.atualizar_posicao()
+        self.tentar_atirar()
         # se sair por baixo ou bater no topo, mata
         if self.rect.y > ALTURA or self.rect.y < -60:
             self.kill()
 
+
 # ROBO CAÇADOR — segue o jogador
 class RoboCacador(Robo):
-    def __init__(self, x, y, alvo):
-        super().__init__(x, y, velocidade = 2.2)
+    def __init__(self, x, y, alvo, grupo_tiros=None):
+        super().__init__(x, y, velocidade = 2.2, grupo_tiros=grupo_tiros)
         self.image.fill((200, 0, 200))  # magenta
         self.alvo = alvo
 
@@ -176,6 +214,6 @@ class RoboCacador(Robo):
 
     def update(self):
         self.atualizar_posicao()
+        self.tentar_atirar()
         if self.rect.y > ALTURA + 80 or self.rect.y < -80:
             self.kill()
-

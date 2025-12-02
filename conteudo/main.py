@@ -18,6 +18,8 @@ clock = pygame.time.Clock()
 todos_sprites = pygame.sprite.Group()
 inimigos = pygame.sprite.Group()
 tiros = pygame.sprite.Group()
+# novo: grupo para tiros dos robôs
+tiros_inimigos = pygame.sprite.Group()
 
 jogador = Jogador(LARGURA // 2, ALTURA - 60)
 todos_sprites.add(jogador)
@@ -41,13 +43,14 @@ FASES = {
 }
 
 def resetar_jogo():
-    global pontos, temporizador_spawn, todos_sprites, inimigos, tiros, jogador, estado, fade_alpha, fade_direcao, fase_atual
+    global pontos, temporizador_spawn, todos_sprites, inimigos, tiros, jogador, estado, fade_alpha, fade_direcao, fase_atual, tiros_inimigos
     pontos = 0
     temporizador_spawn = 0
     fase_atual = 1
     todos_sprites.empty()
     inimigos.empty()
     tiros.empty()
+    tiros_inimigos.empty()
     jogador = Jogador(LARGURA // 2, ALTURA - 60)
     todos_sprites.add(jogador)
     estado = "jogando"
@@ -61,37 +64,37 @@ def spawnar_inimigos():
     
     # RoboLento
     if "lento" in robos_permitidos and temporizador_spawn % 50 == 0:
-        robo = RoboLento(random.randint(40, LARGURA - 40), -40)
+        robo = RoboLento(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
         todos_sprites.add(robo)
         inimigos.add(robo)
     
     # RoboRapido
     if "rapido" in robos_permitidos and temporizador_spawn % 60 == 0:
-        robo = RoboRapido(random.randint(40, LARGURA - 40), -40)
+        robo = RoboRapido(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
         todos_sprites.add(robo)
         inimigos.add(robo)
     
     # RoboSaltador
     if "saltador" in robos_permitidos and temporizador_spawn % 75 == 0:
-        robo = RoboSaltador(random.randint(40, LARGURA - 40), -40)
+        robo = RoboSaltador(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
         todos_sprites.add(robo)
         inimigos.add(robo)
     
     # RoboZigueZague
     if "ziguezague" in robos_permitidos and temporizador_spawn % 80 == 0:
-        robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40)
+        robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
         todos_sprites.add(robo)
         inimigos.add(robo)
     
     # RoboCacador
     if "cacador" in robos_permitidos and temporizador_spawn % 120 == 0:
-        robo = RoboCacador(random.randint(40, LARGURA - 40), -60, jogador)
+        robo = RoboCacador(random.randint(40, LARGURA - 40), -60, jogador, grupo_tiros=tiros_inimigos)
         todos_sprites.add(robo)
         inimigos.add(robo)
     
     # RoboCiclico
     if "ciclico" in robos_permitidos and temporizador_spawn % 90 == 0:
-        robo = RoboCiclico(random.randint(60, LARGURA - 60), -40)
+        robo = RoboCiclico(random.randint(60, LARGURA - 60), -40, grupo_tiros=tiros_inimigos)
         todos_sprites.add(robo)
         inimigos.add(robo)
 
@@ -160,8 +163,12 @@ while rodando:
 
     # colisão tiro x robô
     if estado == "jogando":
+        # colisão tiro jogador x robo (mantive seu comportamento)
         colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
         pontos += 10 * len(colisao)
+        
+        # colisão tiro jogador x tiro inimigo -> ambos somem
+        pygame.sprite.groupcollide(tiros, tiros_inimigos, True, True)
         
         # Verificar vitória
         if pontos >= 100:
@@ -181,11 +188,13 @@ while rodando:
     # atualizar
     if estado == "jogando":
         todos_sprites.update()
+        tiros_inimigos.update()   # atualiza tiros dos robôs também
 
     # desenhar
     TELA.fill((20, 20, 20))
     TELA.blit(BACKGROUND, (0, 0))
     todos_sprites.draw(TELA)
+    tiros_inimigos.draw(TELA)   # desenha tiros dos robôs
 
     #Painel de pontos e vida
     font = pygame.font.SysFont(None, 30)

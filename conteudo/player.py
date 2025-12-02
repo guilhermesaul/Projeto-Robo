@@ -12,14 +12,14 @@ class Jogador(Entidade):
     def update(self):
         keys = pygame.key.get_pressed()
 
-        if keys[pygame.K_w]:
-            self.mover(0, -self.velocidade)
+        if keys[pygame.K_w]: #cima        
+            self.mover(0, -self.velocidade)#baixo
         if keys[pygame.K_s]:
-            self.mover(0, self.velocidade)
+            self.mover(0, self.velocidade)#baixo
         if keys[pygame.K_a]:
-            self.mover(-self.velocidade, 0)
+            self.mover(-self.velocidade, 0)#esquerda
         if keys[pygame.K_d]:
-            self.mover(self.velocidade, 0)
+            self.mover(self.velocidade, 0)#direita
 
         # limites de tela
         self.rect.x = max(0, min(self.rect.x, LARGURA - 40))
