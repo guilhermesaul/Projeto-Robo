@@ -325,21 +325,6 @@ while rodando:
         TELA.blit(texto_restart, (LARGURA//2 - texto_restart.get_width()//2, ALTURA//2 + 40))
 
 
-        from boss import BossFinal
-
-boss_spawnado = False
-
-# dentro do loop do jogo:
-if not boss_spawnado and pontuacao >= 1000:  # exemplo
-    boss = BossFinal(grupo_tiros=tiros_inimigos)
-    inimigos.add(boss)
-    boss_spawnado = True
-
-# desenhar barra de vida
-if boss_spawnado:
-    boss.desenhar_barra_de_vida(tela)
-
-
     pygame.display.flip()
 
 pygame.quit()
