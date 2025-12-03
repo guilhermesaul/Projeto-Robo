@@ -47,7 +47,6 @@ class TiroRobo(Entidade):
         if self.rect.y > ALTURA:
             self.kill()
 
-
 # ROBO LENTO
 class RoboLento(Robo):
     def __init__(self, x, y, grupo_tiros=None):
