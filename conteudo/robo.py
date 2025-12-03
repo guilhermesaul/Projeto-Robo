@@ -24,6 +24,10 @@ class Robo(Entidade):
         # decrementa e, quando chega a zero, dispara e reseta o timer
         if self.grupo_tiros is None:
             return
+        
+    def ponto_de_tiro(self):
+    # ponto padrão: centro inferior da nave
+        return self.rect.centerx, self.rect.bottom
 
         self.tiro_timer -= 1
         if self.tiro_timer <= 0:
