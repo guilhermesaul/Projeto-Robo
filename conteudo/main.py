@@ -32,7 +32,7 @@ tiros_inimigos = pygame.sprite.Group()
 jogador = Jogador(LARGURA // 2, ALTURA - 60)
 todos_sprites.add(jogador)
 
-pontos = 200
+pontos = 0
 temporizador_spawn = 0
 estado = "menu"  # menu, jogando, pausado, game_over, vitoria
 fade_alpha = 0
@@ -175,7 +175,7 @@ while rodando:
         # colisão tiro jogador x robo (mantive seu comportamento)
         colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
         if colisao:
-            pontos += 10 * len(colisao)
+            pontos += 1 * len(colisao)
             SOM_EXPLOSAO.play()
         
         # colisão tiro jogador x tiro inimigo -> ambos somem
@@ -323,6 +323,22 @@ while rodando:
         TELA.blit(texto_vitoria, (LARGURA//2 - texto_vitoria.get_width()//2, ALTURA//2 - 120))
         TELA.blit(texto_pontos, (LARGURA//2 - texto_pontos.get_width()//2, ALTURA//2 - 40))
         TELA.blit(texto_restart, (LARGURA//2 - texto_restart.get_width()//2, ALTURA//2 + 40))
+
+
+        from boss import BossFinal
+
+boss_spawnado = False
+
+# dentro do loop do jogo:
+if not boss_spawnado and pontuacao >= 1000:  # exemplo
+    boss = BossFinal(grupo_tiros=tiros_inimigos)
+    inimigos.add(boss)
+    boss_spawnado = True
+
+# desenhar barra de vida
+if boss_spawnado:
+    boss.desenhar_barra_de_vida(tela)
+
 
     pygame.display.flip()
 

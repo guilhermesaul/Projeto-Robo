@@ -25,22 +25,28 @@ class Robo(Entidade):
         if self.grupo_tiros is None:
             return
         
-    def ponto_de_tiro(self):
-    # ponto padrão: centro inferior da nave
-        return self.rect.centerx, self.rect.bottom
-
         self.tiro_timer -= 1
         if self.tiro_timer <= 0:
-            tiro = TiroRobo(self.rect.centerx, self.rect.bottom, velocidade=self.vel_tiro)
+            x, y = self.ponto_de_tiro()
+            tiro = TiroRobo(x, y, velocidade=self.vel_tiro)
             self.grupo_tiros.add(tiro)
             # reseta timer com variação para não ficar previsível
             self.tiro_timer = random.randint(50, 180)
 
+    def ponto_de_tiro(self):
+        # ponto de saída do tiro na parte inferior da nave
+        return (self.rect.centerx, self.rect.bottom - 10)
+    
 
 # TIRO DO ROBO
 class TiroRobo(Entidade):
     def __init__(self, x, y, velocidade=6):
         super().__init__(x, y, velocidade)
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
         # usa superfície menor para ficar mais parecido com um tiro
         self.image = pygame.Surface((6, 12))
         self.image.fill((255, 0, 0))  # vermelho
@@ -59,6 +65,7 @@ class RoboLento(Robo):
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
         self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -78,6 +85,7 @@ class RoboRapido(Robo):
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
         self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -98,6 +106,7 @@ class RoboZigueZague(Robo):
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
         self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -121,6 +130,7 @@ class RoboCiclico(Robo):
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
         self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
         self.angulo = 0
         self.raio = 60
 
@@ -148,6 +158,7 @@ class RoboCiclico(Robo):
         # o centro desce com o tempo
         self.centro_y += self.velocidade
 
+    
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
@@ -159,8 +170,11 @@ class RoboCiclico(Robo):
 class RoboSaltador(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 2, grupo_tiros=grupo_tiros)
-        self.cor_base = (255, 165, 0)
-        self.image.fill(self.cor_base)  # laranja
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
         self.velocidade_vertical = self.velocidade
         self.gravidade = 0.3
         self.posicao_y = float(y)
@@ -191,16 +205,6 @@ class RoboSaltador(Robo):
         self.posicao_y += self.velocidade_vertical
         self.rect.y = int(self.posicao_y)
 
-        # efeito de flash alternando cor durante o teleporte
-        if self.flash_timer > 0:
-            if self.flash_timer % 2 == 0:
-                self.image.fill((255, 255, 255))  # flash branco
-            else:
-                self.image.fill(self.cor_base)
-            self.flash_timer -= 1
-        else:
-            self.image.fill(self.cor_base)
-
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
@@ -217,6 +221,7 @@ class RoboCacador(Robo):
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
         self.image = pygame.transform.scale(self.image, (128, 128))
+        self.rect = self.image.get_rect(center=self.rect.center)
         self.alvo = alvo
 
     def atualizar_posicao(self):
