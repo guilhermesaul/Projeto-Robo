@@ -52,7 +52,10 @@ class TiroRobo(Entidade):
 class RoboLento(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 1.5, grupo_tiros=grupo_tiros)
-        self.image.fill((100, 100, 255))  # azul claro
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboLento.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -68,7 +71,10 @@ class RoboLento(Robo):
 class RoboRapido(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 3, grupo_tiros=grupo_tiros)
-        self.image.fill((255, 0, 0))
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboRapido.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -85,6 +91,10 @@ class RoboZigueZague(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 2, grupo_tiros=grupo_tiros)
         self.direcao = 1
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboZigue.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -104,7 +114,10 @@ class RoboZigueZague(Robo):
 class RoboCiclico(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 1, grupo_tiros=grupo_tiros)
-        self.image.fill((0, 128, 255))
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
         self.angulo = 0
         self.raio = 60
 
@@ -197,7 +210,10 @@ class RoboSaltador(Robo):
 class RoboCacador(Robo):
     def __init__(self, x, y, alvo, grupo_tiros=None):
         super().__init__(x, y, velocidade = 2.2, grupo_tiros=grupo_tiros)
-        self.image.fill((200, 0, 200))  # magenta
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCacador.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
         self.alvo = alvo
 
     def atualizar_posicao(self):
