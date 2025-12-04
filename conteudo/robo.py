@@ -241,3 +241,48 @@ class RoboCacador(Robo):
         self.tentar_atirar()
         if self.rect.y > ALTURA + 80 or self.rect.y < -80:
             self.kill()
+# BOSS
+class Boss(Robo):
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade=1, grupo_tiros=grupo_tiros)
+        self.image = pygame.Surface((120, 120))
+        self.image.fill((255, 255, 255))  # branco
+        self.rect = self.image.get_rect(center=(x, y))
+        self.vida = 50
+        self.direcao = 1
+        self.vel_horizontal = 3
+        self.tiro_timer = 20  # atira mais rápido
+        self.vel_tiro = 8
+        self.pos_y_alvo = ALTURA // 4  # fica no topo da tela
+        self.descendo = True
+
+    def atualizar_posicao(self):
+        # desce até posição alvo, depois fica se movendo lateralmente
+        if self.descendo:
+            if self.rect.centery < self.pos_y_alvo:
+                self.rect.y += self.velocidade * 2
+            else:
+                self.descendo = False
+        else:
+            # movimento lateral
+            self.rect.x += self.direcao * self.vel_horizontal
+            if self.rect.left <= 0 or self.rect.right >= LARGURA:
+                self.direcao *= -1
+
+    def update(self):
+        self.atualizar_posicao()
+        self.tentar_atirar()
+        
+    def receber_dano(self):
+        self.vida -= 1
+        # efeito visual de dano (pisca)
+        if self.vida % 2 == 0:
+            self.image.fill((255, 200, 200))
+        else:
+            self.image.fill((255, 255, 255))
+        
+        if self.vida <= 0:
+            self.kill()
+            return True
+        return False
+            self.kill()
