@@ -2,18 +2,17 @@ import pygame
 import random
 import os
 from config import LARGURA, ALTURA, FPS
-from robo import RoboLento, RoboZigueZague, RoboRapido, RoboCiclico, RoboSaltador, RoboCacador 
+from audio import inicializar_audio, tocar_musica_boss, parar_musica
+from robo import RoboLento, RoboZigueZague, RoboRapido, RoboCiclico, RoboSaltador, RoboCacador, Boss 
 from player import Jogador, Tiro
 
+# Preconfigura o mixer antes do init para evitar erros/latência no Windows
+pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 pygame.mixer.init()
 
-CAMINHO_SOM_LASER = os.path.join(os.path.dirname(__file__), "assets", "audios", "laser-shot.wav")
-CAMINHO_SOM_EXPLOSAO = os.path.join(os.path.dirname(__file__), "assets", "audios", "explosao-nave.wav")
-SOM_LASER = pygame.mixer.Sound(CAMINHO_SOM_LASER)
-SOM_EXPLOSAO = pygame.mixer.Sound(CAMINHO_SOM_EXPLOSAO)
-SOM_LASER.set_volume(0.3)
-SOM_EXPLOSAO.set_volume(0.4)
+BASE_DIR = os.path.dirname(__file__)
+SONS, CAMINHO_MUSICA_BOSS = inicializar_audio(BASE_DIR)
 
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
 CAMINHO_BACKGROUND = os.path.join(os.path.dirname(__file__), "assets", "images", "background-teste.png")
@@ -34,27 +33,34 @@ todos_sprites.add(jogador)
 
 pontos = 0
 temporizador_spawn = 0
-estado = "menu"  # menu, jogando, pausado, game_over, vitoria
+estado = "menu"  # menu, jogando, pausado, game_over, vitoria, boss
 fade_alpha = 0
 fade_direcao = 1
 fase_atual = 1
 opcao_menu = 0  # 0 = Iniciar, 1 = Sair
 opcao_pausa = 0  # 0 = Continuar, 1 = Sair
 cadencia_tiro = 0  # cooldown para rajada automática
+boss_ativo = False
+boss_spawnou = False
+musica_boss_tocando = False
 
 # Configuração de fases
 FASES = {
     1: {"nome": "Fase 1: Iniciante", "duracao": 600, "robos": ["lento", "rapido"]},
     2: {"nome": "Fase 2: Saltadores", "duracao": 700, "robos": ["lento", "saltador", "ziguezague"]},
     3: {"nome": "Fase 3: Caçadores", "duracao": 900, "robos": ["rapido", "cacador", "ciclico"]},
-    4: {"nome": "Fase 4: Completa", "duracao": 9999999, "robos": ["lento", "rapido", "saltador", "ziguezague", "cacador", "ciclico"]}
+    4: {"nome": "Fase 4: Boss Final", "duracao": 9999999, "robos": []}
 }
 
 def resetar_jogo():
-    global pontos, temporizador_spawn, todos_sprites, inimigos, tiros, jogador, estado, fade_alpha, fade_direcao, fase_atual, tiros_inimigos
+    global pontos, temporizador_spawn, todos_sprites, inimigos, tiros, jogador, estado, fade_alpha, fade_direcao, fase_atual, tiros_inimigos, boss_ativo, boss_spawnou, musica_boss_tocando
     pontos = 0
     temporizador_spawn = 0
     fase_atual = 1
+    boss_ativo = False
+    boss_spawnou = False
+    musica_boss_tocando = False
+    pygame.mixer.music.stop()
     todos_sprites.empty()
     inimigos.empty()
     tiros.empty()
@@ -152,9 +158,23 @@ while rodando:
         if temporizador_spawn >= FASES[fase_atual]["duracao"] and fase_atual < len(FASES):
             fase_atual += 1
             temporizador_spawn = 0
+            
+            # Se chegou na fase 4, spawna o boss
+            if fase_atual == 4 and not boss_spawnou:
+                boss = Boss(LARGURA // 2, -100, grupo_tiros=tiros_inimigos)
+                todos_sprites.add(boss)
+                inimigos.add(boss)
+                boss_ativo = True
+                boss_spawnou = True
+                
+                # Toca música do boss
+                if not musica_boss_tocando and os.path.exists(CAMINHO_MUSICA_BOSS):
+                    tocar_musica_boss(CAMINHO_MUSICA_BOSS)
+                    musica_boss_tocando = True
         
-        # Spawnar inimigos da fase atual
-        spawnar_inimigos()
+        # Spawnar inimigos da fase atual (não spawna na fase do boss)
+        if fase_atual < 4:
+            spawnar_inimigos()
         
         # Sistema de rajada automática ao segurar espaço
         keys = pygame.key.get_pressed()
@@ -163,7 +183,8 @@ while rodando:
                 tiro = Tiro(jogador.rect.centerx, jogador.rect.y)
                 todos_sprites.add(tiro)
                 tiros.add(tiro)
-                SOM_LASER.play()
+                if SONS.get("laser"):
+                    SONS["laser"].play()
                 cadencia_tiro = 10  # intervalo entre tiros (menor = mais rápido)
         
         if cadencia_tiro > 0:
@@ -172,29 +193,57 @@ while rodando:
 
     # colisão tiro x robô
     if estado == "jogando":
-        # colisão tiro jogador x robo (mantive seu comportamento)
-        colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
-        if colisao:
-            pontos += 1 * len(colisao)
-            SOM_EXPLOSAO.play()
+        # colisão tiro jogador x robo
+        colisoes = pygame.sprite.groupcollide(inimigos, tiros, False, True)
+        for inimigo, tiros_atingidos in colisoes.items():
+            if isinstance(inimigo, Boss):
+                # Boss leva dano mas não morre automaticamente
+                if inimigo.receber_dano():
+                    # Boss morreu
+                    pontos += 50
+                    if SONS.get("explosao"):
+                        SONS["explosao"].play()
+                    parar_musica()
+                    musica_boss_tocando = False
+                    boss_ativo = False
+                    # Vitória ao derrotar o boss
+                    estado = "vitoria"
+                    fade_alpha = 0
+                    fade_direcao = 1
+            else:
+                # Inimigos normais morrem com um tiro
+                inimigo.kill()
+                pontos += 1
+                if SONS.get("explosao"):
+                    SONS["explosao"].play()
         
         # colisão tiro jogador x tiro inimigo -> ambos somem
         pygame.sprite.groupcollide(tiros, tiros_inimigos, True, True)
-        
-        # Verificar vitória
-        if pontos >= 100:
-            estado = "vitoria"
-            fade_alpha = 0
-            fade_direcao = 1
 
     # colisão robô x jogador
     if estado == "jogando":
-        if pygame.sprite.spritecollide(jogador, inimigos, True): # type: ignore
+        colisoes_jogador = pygame.sprite.spritecollide(jogador, inimigos, False) # type: ignore para nao ficar sublinhado de vermelho
+        if colisoes_jogador:
+            for inimigo in colisoes_jogador:
+                if not isinstance(inimigo, Boss):
+                    inimigo.kill()
+                jogador.vida -= 1
+                if jogador.vida <= 0:
+                    estado = "game_over"
+                    fade_alpha = 0
+                    fade_direcao = 1
+                    parar_musica()
+                    musica_boss_tocando = False
+        
+        # colisão tiro inimigo x jogador
+        if pygame.sprite.spritecollide(jogador, tiros_inimigos, True): # type: ignore | para nao ficar sublinhado de vermelho
             jogador.vida -= 1
             if jogador.vida <= 0:
                 estado = "game_over"
-                fade_alpha = 0  # começa fade in do game over
+                fade_alpha = 0
                 fade_direcao = 1
+                parar_musica()
+                musica_boss_tocando = False
 
     # atualizar
     if estado == "jogando":
@@ -241,6 +290,27 @@ while rodando:
         # Mostrar fase atual
         texto_fase = font.render(FASES[fase_atual]["nome"], True, (255, 255, 0))
         TELA.blit(texto_fase, (LARGURA - texto_fase.get_width() - 10, 10))
+        
+        # Mostrar vida do boss se estiver ativo
+        if boss_ativo:
+            for inimigo in inimigos:
+                if isinstance(inimigo, Boss):
+                    barra_largura = 200
+                    barra_altura = 20
+                    barra_x = LARGURA // 2 - barra_largura // 2
+                    barra_y = 50
+                    
+                    # Fundo da barra
+                    pygame.draw.rect(TELA, (100, 100, 100), (barra_x, barra_y, barra_largura, barra_altura))
+                    # Vida atual
+                    vida_largura = int((inimigo.vida / 50) * barra_largura)
+                    pygame.draw.rect(TELA, (255, 0, 0), (barra_x, barra_y, vida_largura, barra_altura))
+                    # Borda
+                    pygame.draw.rect(TELA, (255, 255, 255), (barra_x, barra_y, barra_largura, barra_altura), 2)
+                    
+                    texto_boss = font.render("BOSS", True, (255, 255, 255))
+                    TELA.blit(texto_boss, (barra_x + barra_largura // 2 - texto_boss.get_width() // 2, barra_y - 25))
+                    break
     
     elif estado == "pausado":
         # Overlay de pausa
