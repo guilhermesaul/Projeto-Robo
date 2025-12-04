@@ -284,5 +284,6 @@ class Boss(Robo):
         if self.vida <= 0:
             self.kill()
             return True
+        
         return False
-            self.kill()
+         
