@@ -173,7 +173,7 @@ class RoboSaltador(Robo):
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (64, 64))
+        self.image = pygame.transform.scale(self.image, (128, 128))
         self.rect = self.image.get_rect(center=self.rect.center)
         self.velocidade_vertical = self.velocidade
         self.gravidade = 0.3
