@@ -275,6 +275,21 @@ while rodando:
         for item in coletados:
             jogador.aplicar_powerup(item.tipo)
 
+     # colisão tiro inimigo x jogador (simples: cada tiro que acertar subtrai 1 vida)
+    if estado == "jogando":
+        # pega a lista de tiros inimigos que colidiram com o jogador e já remove esses tiros
+        tiros_acertaram = pygame.sprite.spritecollide(jogador, tiros_inimigos, True)  # type: ignore[arg-type]
+        if tiros_acertaram:
+            # para cada tiro que acertou, tira 1 vida
+            for _ in tiros_acertaram:
+                jogador.vida -= 1
+                # checa se acabou a vida
+                if jogador.vida <= 0:
+                    estado = "game_over"
+                    fade_alpha = 0
+                    fade_direcao = 1
+                    break  # sair do loop de tiros (já morreu)
+                
     # colisão robô x jogador
     if estado == "jogando":
         if pygame.sprite.spritecollide(jogador, inimigos, True):  # type: ignore[arg-type]
