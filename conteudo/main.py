@@ -324,7 +324,6 @@ while rodando:
         TELA.blit(texto_pontos, (LARGURA//2 - texto_pontos.get_width()//2, ALTURA//2 - 40))
         TELA.blit(texto_restart, (LARGURA//2 - texto_restart.get_width()//2, ALTURA//2 + 40))
 
-
     pygame.display.flip()
 
 pygame.quit()
