@@ -1,3 +1,4 @@
 FPS = 60
 LARGURA = 1080
 ALTURA = 720
+

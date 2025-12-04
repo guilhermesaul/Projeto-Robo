@@ -212,9 +212,10 @@ while rodando:
     
     if estado == "menu":
         # Menu inicial
-        fonte_titulo = pygame.font.SysFont(None, 80)
-        fonte_opcao = pygame.font.SysFont(None, 50)
-        
+        CAMINHO_FONTE = os.path.join(os.path.dirname(__file__), "assets", "fonte", "Orbitron-VariableFont_wght.ttf")
+        fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 80)
+        fonte_opcao = pygame.font.Font(CAMINHO_FONTE, 50)
+                
         titulo = fonte_titulo.render("ROBOT DEFENSE", True, (0, 255, 255))
         TELA.blit(titulo, (LARGURA//2 - titulo.get_width()//2, ALTURA//2 - 150))
         
@@ -227,7 +228,7 @@ while rodando:
         TELA.blit(texto_iniciar, (LARGURA//2 - 80, ALTURA//2 + 20))
         TELA.blit(texto_sair, (LARGURA//2 - 80, ALTURA//2 + 80))
         
-        fonte_info = pygame.font.SysFont(None, 28)
+        fonte_info = pygame.font.Font(CAMINHO_FONTE, 28)
         info = fonte_info.render("Use SETAS e ENTER para navegar", True, (150, 150, 150))
         TELA.blit(info, (LARGURA//2 - info.get_width()//2, ALTURA - 50))
     
@@ -249,8 +250,10 @@ while rodando:
         overlay.fill((0, 0, 0))
         TELA.blit(overlay, (0, 0))
         
-        fonte_titulo = pygame.font.SysFont(None, 80)
-        fonte_opcao = pygame.font.SysFont(None, 50)
+        fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 80)
+        fonte_titulo.set_bold(True)
+
+        fonte_opcao = pygame.font.Font(CAMINHO_FONTE, 50)
         
         titulo = fonte_titulo.render("PAUSADO", True, (255, 255, 0))
         TELA.blit(titulo, (LARGURA//2 - titulo.get_width()//2, ALTURA//2 - 120))
@@ -273,8 +276,9 @@ while rodando:
                 fade_direcao = 0  # fade completo, mantém
         
         # Tela de Game Over com fade
-        fonte_grande = pygame.font.SysFont(None, 72)
-        fonte_media = pygame.font.SysFont(None, 40)
+        
+        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 72)
+        fonte_media = pygame.font.Font(CAMINHO_FONTE, 40)
         texto_gameover = fonte_grande.render("GAME OVER", True, (255, 0, 0))
         texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
         texto_restart = fonte_media.render("Aperte ESPAÇO para voltar ao menu", True, (0, 255, 255))
@@ -303,8 +307,8 @@ while rodando:
                 fade_direcao = 0
         
         # Tela de Vitória com fade
-        fonte_grande = pygame.font.SysFont(None, 72)
-        fonte_media = pygame.font.SysFont(None, 40)
+        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 72)
+        fonte_media = pygame.font.Font(CAMINHO_FONTE, 40)
         texto_vitoria = fonte_grande.render("VITÓRIA!", True, (0, 255, 0))
         texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
         texto_restart = fonte_media.render("Aperte ESPAÇO para voltar ao menu", True, (255, 255, 0))
