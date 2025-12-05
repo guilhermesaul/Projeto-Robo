@@ -13,6 +13,7 @@ from robo import (
     RoboRapido,
     RoboSaltador,
     RoboZigueZague,
+    Explosao
 )
 
 pygame.init()
@@ -257,9 +258,15 @@ while rodando:
         colisao = pygame.sprite.groupcollide(inimigos, tiros, True, True)
         if colisao:
             for inimigo in colisao:
+
+                explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
+                todos_sprites.add(explosao)
+
                 pontos += 1
                 tentar_drop_powerup(inimigo)
+
             SOM_EXPLOSAO.play()
+
 
         # colisão tiro jogador x tiro inimigo -> ambos somem
         pygame.sprite.groupcollide(tiros, tiros_inimigos, True, True)

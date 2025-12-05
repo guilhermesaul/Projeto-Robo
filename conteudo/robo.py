@@ -287,3 +287,66 @@ class Boss(Robo):
         
         return False
          
+
+
+class Explosao(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+
+        self.frames = []
+        self.frame_atual = 0
+
+        for i in range(12):
+            img = pygame.Surface((80, 80), pygame.SRCALPHA)
+
+            # tamanho da explosão
+            raio = 28 - i * 2
+            if raio < 0:
+                raio = 0
+
+            cx, cy = 40, 40
+
+            # cor e transparência
+            cor = (180, 0, 255)
+            alpha = max(220 - i * 15, 0)
+
+            # forma irregular
+            largura = raio * 2 + random.randint(-8, 8)
+            altura  = raio * 2 + random.randint(-8, 8)
+
+            pygame.draw.ellipse(
+                img,
+                (*cor, alpha),
+                (cx - largura//2, cy - altura//2, largura, altura)
+            )
+
+            # pequenas partículas
+            for _ in range(14):
+                px = cx + random.randint(-raio // 2, raio // 2)
+                py = cy + random.randint(-raio // 2, raio // 2)
+
+                tamanho = random.randint(1, 2)
+                alpha_p = max(130 - i * 15, 0)
+
+                pygame.draw.circle(
+                    img,
+                    (200, 0, 255, alpha_p),
+                    (px, py),
+                    tamanho
+                )
+
+            self.frames.append(img)
+
+        self.image = self.frames[0]
+        self.rect = self.image.get_rect(center=(x, y))
+
+    def update(self):
+        self.frame_atual += 0.6
+
+        # remove quando acabar
+        if self.frame_atual >= len(self.frames):
+            self.kill()
+            return
+
+        self.image = self.frames[int(self.frame_atual)]
+
