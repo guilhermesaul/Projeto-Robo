@@ -5,6 +5,23 @@ import random
 from entidade import Entidade
 from config import LARGURA, ALTURA
 
+# Classe para os tiros do Boss (maiores)
+class TiroBoss(pygame.sprite.Sprite):
+    def __init__(self, x, y, velocidade):
+        super().__init__()
+        # Tiro do Boss maior: 16x24 (maior que TiroRobo 10x18)
+        self.image = pygame.Surface((16, 24))
+        self.image.fill((255, 80, 80))  # vermelho mais escuro
+        self.rect = self.image.get_rect(center=(x, y))
+        self.velocidade = velocidade
+
+    def update(self):
+        self.rect.y += self.velocidade
+        # Remove se sair da tela
+        if self.rect.top > ALTURA:
+            self.kill()
+
+
 # ROBO BASE
 class Robo(Entidade):
     def __init__(self, x, y, velocidade, grupo_tiros=None):
@@ -48,7 +65,7 @@ class TiroRobo(Entidade):
         self.image = pygame.transform.scale(self.image, (128, 128))
         self.rect = self.image.get_rect(center=self.rect.center)
         # usa superfície menor para ficar mais parecido com um tiro
-        self.image = pygame.Surface((6, 12))
+        self.image = pygame.Surface((10, 18))  # um pouco maior
         self.image.fill((255, 0, 0))  # vermelho
         self.rect = self.image.get_rect(center=(x, y))
 
@@ -112,7 +129,7 @@ class RoboZigueZague(Robo):
         self.rect.y += self.velocidade
         self.rect.x += self.direcao * 3
 
-        if self.rect.x <= 0 or self.rect.x >= LARGURA - 40:
+        if self.rect.left <= 0 or self.rect.right >= LARGURA:
             self.direcao *= -1
 
     def update(self):
@@ -145,7 +162,7 @@ class RoboCiclico(Robo):
         self.centro_x += self.direcao * self.vel_horizontal
 
         # se bater nas bordas, troca direção
-        if self.centro_x <= 0 + self.raio or self.centro_x >= LARGURA - self.raio:
+        if self.centro_x <= self.raio or self.centro_x >= LARGURA - self.raio:
             self.direcao *= -1
 
         # movimento circular
@@ -189,7 +206,7 @@ class RoboSaltador(Robo):
         # contador para teleporte
         self.tempo_teleporte += 1
         if self.tempo_teleporte >= self.proximo_teleporte:
-            novo_x = random.randint(0, LARGURA - 40)
+            novo_x = random.randint(40, LARGURA - 40)
             novo_y = random.randint(0, ALTURA // 2)
             self.rect.x = novo_x
             self.posicao_y = float(novo_y)
@@ -245,14 +262,16 @@ class RoboCacador(Robo):
 class Boss(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade=1, grupo_tiros=grupo_tiros)
-        self.image = pygame.Surface((120, 120))
+        # Boss muito maior - 256x256
+        self.image = pygame.Surface((256, 256))
         self.image.fill((255, 255, 255))  # branco
         self.rect = self.image.get_rect(center=(x, y))
-        self.vida = 50
+        self.vida = 500  # vida muito maior
+        self.vida_max = 500
         self.direcao = 1
-        self.vel_horizontal = 3
-        self.tiro_timer = 20  # atira mais rápido
-        self.vel_tiro = 8
+        self.vel_horizontal = 4  # mais rápido
+        self.tiro_timer = 60  # intervalo inicial de tiro
+        self.vel_tiro = 10  # tiros mais rápidos
         self.pos_y_alvo = ALTURA // 4  # fica no topo da tela
         self.descendo = True
 
@@ -266,8 +285,27 @@ class Boss(Robo):
         else:
             # movimento lateral
             self.rect.x += self.direcao * self.vel_horizontal
-            if self.rect.left <= 0 or self.rect.right >= LARGURA:
+            # Mantém o Boss sempre dentro da tela
+            if self.rect.left <= 0:
+                self.rect.left = 0
                 self.direcao *= -1
+            elif self.rect.right >= LARGURA:
+                self.rect.right = LARGURA
+                self.direcao *= -1
+    
+    def tentar_atirar(self):
+        # Boss atira 5 tiros espalhados
+        if self.grupo_tiros is None:
+            return
+        
+        self.tiro_timer -= 1
+        if self.tiro_timer <= 0:
+            # 5 tiros espalhados
+            for offset in [-60, -30, 0, 30, 60]:
+                tiro = TiroBoss(self.rect.centerx + offset, self.rect.bottom, self.vel_tiro)
+                self.grupo_tiros.add(tiro)
+            
+            self.tiro_timer = random.randint(60, 120)
 
     def update(self):
         self.atualizar_posicao()
@@ -281,11 +319,14 @@ class Boss(Robo):
         else:
             self.image.fill((255, 255, 255))
         
+        # 5% chance de dropar power-up ao receber dano
+        deve_dropar_powerup = random.random() < 0.05
+        
         if self.vida <= 0:
             self.kill()
-            return True
+            return True, deve_dropar_powerup  # (morreu, dropar_powerup)
         
-        return False
+        return False, deve_dropar_powerup  # (ainda vivo, dropar_powerup)
          
 
 
