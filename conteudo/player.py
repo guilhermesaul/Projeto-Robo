@@ -17,7 +17,7 @@ class Jogador(Entidade):
         keys = pygame.key.get_pressed()
 
         if keys[pygame.K_w]:  # cima
-            self.mover(0, -self.velocidade)  # baixo
+            self.mover(0, -self.velocidade) 
         if keys[pygame.K_s]:
             self.mover(0, self.velocidade)  # baixo
         if keys[pygame.K_a]:

@@ -5,6 +5,23 @@ import random
 from entidade import Entidade
 from config import LARGURA, ALTURA
 
+# Classe para os tiros do Boss (maiores)
+class TiroBoss(pygame.sprite.Sprite):
+    def __init__(self, x, y, velocidade):
+        super().__init__()
+        # Tiro do Boss maior: 16x24 (maior que TiroRobo 10x18)
+        self.image = pygame.Surface((16, 24))
+        self.image.fill((255, 80, 80))  # vermelho mais escuro
+        self.rect = self.image.get_rect(center=(x, y))
+        self.velocidade = velocidade
+
+    def update(self):
+        self.rect.y += self.velocidade
+        # Remove se sair da tela
+        if self.rect.top > ALTURA:
+            self.kill()
+
+
 # ROBO BASE
 class Robo(Entidade):
     def __init__(self, x, y, velocidade, grupo_tiros=None):
@@ -48,7 +65,7 @@ class Robo(Entidade):
         self.image = pygame.transform.scale(self.image, (128, 128))
         self.rect = self.image.get_rect(center=self.rect.center)
         # usa superfície menor para ficar mais parecido com um tiro
-        self.image = pygame.Surface((6, 12))
+        self.image = pygame.Surface((10, 18))  # um pouco maior
         self.image.fill((255, 0, 0))  # vermelho
         self.rect = self.image.get_rect(center=(x, y))
 
@@ -128,7 +145,7 @@ class RoboZigueZague(Robo):
         self.rect.y += self.velocidade
         self.rect.x += self.direcao * 3
 
-        if self.rect.x <= 0 or self.rect.x >= LARGURA - 40:
+        if self.rect.left <= 0 or self.rect.right >= LARGURA:
             self.direcao *= -1
 
     def update(self):
@@ -161,7 +178,7 @@ class RoboCiclico(Robo):
         self.centro_x += self.direcao * self.vel_horizontal
 
         # se bater nas bordas, troca direção
-        if self.centro_x <= 0 + self.raio or self.centro_x >= LARGURA - self.raio:
+        if self.centro_x <= self.raio or self.centro_x >= LARGURA - self.raio:
             self.direcao *= -1
 
         # movimento circular
@@ -205,7 +222,7 @@ class RoboSaltador(Robo):
         # contador para teleporte
         self.tempo_teleporte += 1
         if self.tempo_teleporte >= self.proximo_teleporte:
-            novo_x = random.randint(0, LARGURA - 40)
+            novo_x = random.randint(40, LARGURA - 40)
             novo_y = random.randint(0, ALTURA // 2)
             self.rect.x = novo_x
             self.posicao_y = float(novo_y)
@@ -233,11 +250,10 @@ class RoboSaltador(Robo):
 class RoboCacador(Robo):
     def __init__(self, x, y, alvo, grupo_tiros=None):
         super().__init__(x, y, velocidade = 2.2, grupo_tiros=grupo_tiros)
-        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCacador.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
-        self.rect = self.image.get_rect(center=self.rect.center)
+        # Quadrado branco 128x128
+        self.image = pygame.Surface((128, 128))
+        self.image.fill((255, 255, 255))
+        self.rect = self.image.get_rect(topleft=(x, y))
         self.alvo = alvo
 
     def atualizar_posicao(self):
@@ -257,3 +273,136 @@ class RoboCacador(Robo):
         self.tentar_atirar()
         if self.rect.y > ALTURA + 80 or self.rect.y < -80:
             self.kill()
+# BOSS
+class Boss(Robo):
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade=1, grupo_tiros=grupo_tiros)
+        # Boss muito maior - 256x256
+        self.image = pygame.Surface((256, 256))
+        self.image.fill((255, 255, 255))  # branco
+        self.rect = self.image.get_rect(center=(x, y))
+        self.vida = 500  # vida muito maior
+        self.vida_max = 500
+        self.direcao = 1
+        self.vel_horizontal = 4  # mais rápido
+        self.tiro_timer = 60  # intervalo inicial de tiro
+        self.vel_tiro = 10  # tiros mais rápidos
+        self.pos_y_alvo = ALTURA // 4  # fica no topo da tela
+        self.descendo = True
+
+    def atualizar_posicao(self):
+        # desce até posição alvo, depois fica se movendo lateralmente
+        if self.descendo:
+            if self.rect.centery < self.pos_y_alvo:
+                self.rect.y += self.velocidade * 2
+            else:
+                self.descendo = False
+        else:
+            # movimento lateral
+            self.rect.x += self.direcao * self.vel_horizontal
+            # Mantém o Boss sempre dentro da tela
+            if self.rect.left <= 0:
+                self.rect.left = 0
+                self.direcao *= -1
+            elif self.rect.right >= LARGURA:
+                self.rect.right = LARGURA
+                self.direcao *= -1
+    
+    def tentar_atirar(self):
+        # Boss atira 5 tiros espalhados
+        if self.grupo_tiros is None:
+            return
+        
+        self.tiro_timer -= 1
+        if self.tiro_timer <= 0:
+            # 5 tiros espalhados
+            for offset in [-60, -30, 0, 30, 60]:
+                tiro = TiroBoss(self.rect.centerx + offset, self.rect.bottom, self.vel_tiro)
+                self.grupo_tiros.add(tiro)
+            
+            self.tiro_timer = random.randint(60, 120)
+
+    def update(self):
+        self.atualizar_posicao()
+        self.tentar_atirar()
+        
+    def receber_dano(self):
+        self.vida -= 1
+        # efeito visual de dano (pisca)
+        if self.vida % 2 == 0:
+            self.image.fill((255, 200, 200))
+        else:
+            self.image.fill((255, 255, 255))
+        
+        # 5% chance de dropar power-up ao receber dano
+        deve_dropar_powerup = random.random() < 0.05
+        
+        if self.vida <= 0:
+            self.kill()
+            return True, deve_dropar_powerup  # (morreu, dropar_powerup)
+        
+        return False, deve_dropar_powerup  # (ainda vivo, dropar_powerup)
+         
+
+
+class Explosao(pygame.sprite.Sprite):
+    def __init__(self, x, y):
+        super().__init__()
+
+        self.frames = []
+        self.frame_atual = 0
+
+        for i in range(12):
+            img = pygame.Surface((80, 80), pygame.SRCALPHA)
+
+            # tamanho da explosão
+            raio = 28 - i * 2
+            if raio < 0:
+                raio = 0
+
+            cx, cy = 40, 40
+
+            # cor e transparência
+            cor = (180, 0, 255)
+            alpha = max(220 - i * 15, 0)
+
+            # forma irregular
+            largura = raio * 2 + random.randint(-8, 8)
+            altura  = raio * 2 + random.randint(-8, 8)
+
+            pygame.draw.ellipse(
+                img,
+                (*cor, alpha),
+                (cx - largura//2, cy - altura//2, largura, altura)
+            )
+
+            # pequenas partículas
+            for _ in range(14):
+                px = cx + random.randint(-raio // 2, raio // 2)
+                py = cy + random.randint(-raio // 2, raio // 2)
+
+                tamanho = random.randint(1, 2)
+                alpha_p = max(130 - i * 15, 0)
+
+                pygame.draw.circle(
+                    img,
+                    (200, 0, 255, alpha_p),
+                    (px, py),
+                    tamanho
+                )
+
+            self.frames.append(img)
+
+        self.image = self.frames[0]
+        self.rect = self.image.get_rect(center=(x, y))
+
+    def update(self):
+        self.frame_atual += 0.6
+
+        # remove quando acabar
+        if self.frame_atual >= len(self.frames):
+            self.kill()
+            return
+
+        self.image = self.frames[int(self.frame_atual)]
+
