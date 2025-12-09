@@ -75,15 +75,15 @@ boss_spawnou = False
 
 # Configuração de fases
 FASES = {
-    1: {"nome": "Fase 1: Iniciante", "duracao": 60, "robos": ["lento", "rapido"]},
+    1: {"nome": "Fase 1: Iniciante", "duracao": 600, "robos": ["lento", "rapido"]},
     2: {
         "nome": "Fase 2: Saltadores",
-        "duracao": 70,
+        "duracao": 700,
         "robos": ["lento", "saltador", "ziguezague"],
     },
     3: {
         "nome": "Fase 3: Caçadores",
-        "duracao": 90,
+        "duracao": 900,
         "robos": ["rapido", "cacador", "ciclico"],
     },
     4: {
@@ -263,7 +263,7 @@ while rodando:
                     pygame.mixer.music.play(-1)
                     musica_atual = "boss"
 
-        # Spawnar inimigos da fase atual (não spawna na fase do boss)
+        # Spawnar inimigos da fase atual (apenas nas fases 1-3)
         if fase_atual < 4:
             spawnar_inimigos()
         
