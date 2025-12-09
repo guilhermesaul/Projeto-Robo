@@ -39,7 +39,7 @@ class Robo(Entidade):
     
 
 # TIRO DO ROBO
-class TiroRobo(Entidade):
+""" class TiroRobo(Entidade):
     def __init__(self, x, y, velocidade=6):
         super().__init__(x, y, velocidade)
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
@@ -51,6 +51,22 @@ class TiroRobo(Entidade):
         self.image = pygame.Surface((6, 12))
         self.image.fill((255, 0, 0))  # vermelho
         self.rect = self.image.get_rect(center=(x, y))
+
+    def update(self):
+        self.rect.y += self.velocidade
+        if self.rect.y > ALTURA:
+            self.kill() """
+
+class TiroRobo(Entidade):
+    def __init__(self, x, y, velocidade=6):
+        super().__init__(x, y, velocidade)
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "shot_exp1.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (96, 96))
+        self.rect = self.image.get_rect(center=(x, y))
+
+        self.velocidade = velocidade
 
     def update(self):
         self.rect.y += self.velocidade
