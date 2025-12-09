@@ -5,20 +5,23 @@ import random
 from entidade import Entidade
 from config import LARGURA, ALTURA
 
-# Classe para os tiros do Boss (maiores)
+# Classe para os tiros do Boss (maiores e com ângulo)
 class TiroBoss(pygame.sprite.Sprite):
-    def __init__(self, x, y, velocidade):
+    def __init__(self, x, y, vy, vx=0):
         super().__init__()
-        # Tiro do Boss maior: 16x24 (maior que TiroRobo 10x18)
+        # Tiro do Boss maior: 16x24
         self.image = pygame.Surface((16, 24))
-        self.image.fill((255, 80, 80))  # vermelho mais escuro
+        self.image.fill((255, 50, 50))
         self.rect = self.image.get_rect(center=(x, y))
-        self.velocidade = velocidade
+        self.vy = vy
+        self.vx = vx
 
     def update(self):
-        self.rect.y += self.velocidade
-        # Remove se sair da tela
-        if self.rect.top > ALTURA:
+        self.rect.y += self.vy
+        self.rect.x += self.vx
+        if (self.rect.top > ALTURA or 
+            self.rect.right < -50 or 
+            self.rect.left > LARGURA + 50):
             self.kill()
 
 
@@ -26,19 +29,15 @@ class TiroBoss(pygame.sprite.Sprite):
 class Robo(Entidade):
     def __init__(self, x, y, velocidade, grupo_tiros=None):
         super().__init__(x, y, velocidade)
-        self.image.fill((255, 255, 255))  # branco
-        # grupo onde os tiros dos robôs serão adicionados (deve ser um pygame.sprite.Group)
+        self.image.fill((255, 255, 255))
         self.grupo_tiros = grupo_tiros
-        # timer aleatório para atirar (em frames)
         self.tiro_timer = random.randint(40, 160)
-        # velocidade dos tiros dos robôs (valor positivo -> vai para baixo)
         self.vel_tiro = 6
 
     def atualizar_posicao(self):
         raise NotImplementedError
 
     def tentar_atirar(self):
-        # decrementa e, quando chega a zero, dispara e reseta o timer
         if self.grupo_tiros is None:
             return
         
@@ -47,43 +46,19 @@ class Robo(Entidade):
             x, y = self.ponto_de_tiro()
             tiro = TiroRobo(x, y, velocidade=self.vel_tiro)
             self.grupo_tiros.add(tiro)
-            # reseta timer com variação para não ficar previsível
             self.tiro_timer = random.randint(50, 180)
 
     def ponto_de_tiro(self):
-        # ponto de saída do tiro na parte inferior da nave
         return (self.rect.centerx, self.rect.bottom - 10)
     
 
 # TIRO DO ROBO
-""" class TiroRobo(Entidade):
-    def __init__(self, x, y, velocidade=6):
-        super().__init__(x, y, velocidade)
-        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
-        self.rect = self.image.get_rect(center=self.rect.center)
-        # usa superfície menor para ficar mais parecido com um tiro
-        self.image = pygame.Surface((10, 18))  # um pouco maior
-        self.image.fill((255, 0, 0))  # vermelho
-        self.rect = self.image.get_rect(center=(x, y))
-
-    def update(self):
-        self.rect.y += self.velocidade
-        if self.rect.y > ALTURA:
-            self.kill() """
-
 class TiroRobo(Entidade):
     def __init__(self, x, y, velocidade=6):
         super().__init__(x, y, velocidade)
-        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "shot_exp1.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (96, 96))
+        self.image = pygame.Surface((10, 18))
+        self.image.fill((255, 0, 0))
         self.rect = self.image.get_rect(center=(x, y))
-
-        self.velocidade = velocidade
 
     def update(self):
         self.rect.y += self.velocidade
@@ -95,10 +70,14 @@ class RoboLento(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 1.5, grupo_tiros=grupo_tiros)
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboLento.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
+        try:
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image = pygame.transform.rotate(imagem_original, -90)
+            self.image = pygame.transform.scale(self.image, (128, 128))
+        except:
+            pass
         self.rect = self.image.get_rect(center=self.rect.center)
+        self.rect.center = (x, y)
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -115,10 +94,14 @@ class RoboRapido(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 3, grupo_tiros=grupo_tiros)
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboRapido.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
+        try:
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image = pygame.transform.rotate(imagem_original, -90)
+            self.image = pygame.transform.scale(self.image, (128, 128))
+        except:
+            pass
         self.rect = self.image.get_rect(center=self.rect.center)
+        self.rect.center = (x, y)
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -130,16 +113,20 @@ class RoboRapido(Robo):
             self.kill()
 
 
-# ROBO EXEMPLO — ZigueZague
+# ROBO ZIGUEZAGUE
 class RoboZigueZague(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 2, grupo_tiros=grupo_tiros)
         self.direcao = 1
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboZigue.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
+        try:
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image = pygame.transform.rotate(imagem_original, -90)
+            self.image = pygame.transform.scale(self.image, (128, 128))
+        except:
+            pass
         self.rect = self.image.get_rect(center=self.rect.center)
+        self.rect.center = (x, y)
 
     def atualizar_posicao(self):
         self.rect.y += self.velocidade
@@ -160,38 +147,21 @@ class RoboCiclico(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade = 1, grupo_tiros=grupo_tiros)
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
-        self.rect = self.image.get_rect(center=self.rect.center)
-        self.angulo = 0
-        self.raio = 60
-
+        try:
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image = pygame.transform.rotate(imagem_original, -90)
+            self.image = pygame.transform.scale(self.image, (128, 128))
+        except:
+            pass
+        self.rect = self.image.get_rect(center=(x, y))
         self.centro_x = x
-        self.centro_y = y
-
-        self.direcao = 1
-        self.vel_horizontal = 2  # velocidade do movimento para os lados
+        self.angulo = 0
 
     def atualizar_posicao(self):
-        # centro do círculo se move para os lados
-        self.centro_x += self.direcao * self.vel_horizontal
-
-        # se bater nas bordas, troca direção
-        if self.centro_x <= self.raio or self.centro_x >= LARGURA - self.raio:
-            self.direcao *= -1
-
-        # movimento circular
-        self.rect.x = self.centro_x + math.cos(self.angulo) * self.raio
-        self.rect.y = self.centro_y + math.sin(self.angulo) * self.raio
-
-        # avanço do círculo
+        self.rect.y += self.velocidade
         self.angulo += 0.1
+        self.rect.x = self.centro_x + math.sin(self.angulo) * 60
 
-        # o centro desce com o tempo
-        self.centro_y += self.velocidade
-
-    
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
@@ -199,210 +169,222 @@ class RoboCiclico(Robo):
             self.kill()
 
 
-# ROBO SALTADOR — faz "pulos" aleatórios
+# ROBO SALTADOR
 class RoboSaltador(Robo):
     def __init__(self, x, y, grupo_tiros=None):
-        super().__init__(x, y, velocidade = 2, grupo_tiros=grupo_tiros)
-        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
-        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (128, 128))
-        self.rect = self.image.get_rect(center=self.rect.center)
-        self.velocidade_vertical = self.velocidade
-        self.gravidade = 0.3
-        self.posicao_y = float(y)
-        self.tempo_teleporte = 0
-        self.intervalo_teleporte_minimo = 50
-        self.intervalo_teleporte_maximo = 140
-        self.proximo_teleporte = random.randint(self.intervalo_teleporte_minimo, self.intervalo_teleporte_maximo)
-        self.flash_duracao = 10
-        self.flash_timer = 0
-
-    def atualizar_posicao(self):
-        # contador para teleporte
-        self.tempo_teleporte += 1
-        if self.tempo_teleporte >= self.proximo_teleporte:
-            novo_x = random.randint(40, LARGURA - 40)
-            novo_y = random.randint(0, ALTURA // 2)
-            self.rect.x = novo_x
-            self.posicao_y = float(novo_y)
-            self.rect.y = novo_y
-            self.tempo_teleporte = 0
-            self.proximo_teleporte = random.randint(self.intervalo_teleporte_minimo, self.intervalo_teleporte_maximo)
-            self.flash_timer = self.flash_duracao
-
-        # atualização da posição vertical (descida leve)
-        self.velocidade_vertical += self.gravidade
-        if self.velocidade_vertical > 4:
-            self.velocidade_vertical = 4
-        self.posicao_y += self.velocidade_vertical
-        self.rect.y = int(self.posicao_y)
-
-    def update(self):
-        self.atualizar_posicao()
-        self.tentar_atirar()
-        # se sair por baixo ou bater no topo, mata
-        if self.rect.y > ALTURA or self.rect.y < -60:
-            self.kill()
-
-
-# ROBO CAÇADOR — segue o jogador
-class RoboCacador(Robo):
-    def __init__(self, x, y, alvo, grupo_tiros=None):
-        super().__init__(x, y, velocidade = 2.2, grupo_tiros=grupo_tiros)
-        # Quadrado branco 128x128
-        self.image = pygame.Surface((128, 128))
-        self.image.fill((255, 255, 255))
-        self.rect = self.image.get_rect(topleft=(x, y))
-        self.alvo = alvo
-
-    def atualizar_posicao(self):
-        diferenca_x = self.alvo.rect.centerx - self.rect.centerx
-        diferenca_y = self.alvo.rect.centery - self.rect.centery
-        distancia = math.hypot(diferenca_x, diferenca_y)
-        if distancia > 0:
-            normal_x = diferenca_x / distancia
-            normal_y = diferenca_y / distancia
-            self.rect.x += normal_x * self.velocidade * 2
-            self.rect.y += normal_y * self.velocidade
-        else:
-            self.rect.y += self.velocidade
-
-    def update(self):
-        self.atualizar_posicao()
-        self.tentar_atirar()
-        if self.rect.y > ALTURA + 80 or self.rect.y < -80:
-            self.kill()
-# BOSS
-class Boss(Robo):
-    def __init__(self, x, y, grupo_tiros=None):
-        super().__init__(x, y, velocidade=1, grupo_tiros=grupo_tiros)
-        # Boss muito maior - 256x256
-        self.image = pygame.Surface((256, 256))
-        self.image.fill((255, 255, 255))  # branco
+        super().__init__(x, y, velocidade=4, grupo_tiros=grupo_tiros)
+        try:
+            CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboSaltador.png")
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image = pygame.transform.rotate(imagem_original, -90)
+            self.image = pygame.transform.scale(self.image, (128, 128))
+        except:
+            self.image.fill((100, 100, 255))
+        
         self.rect = self.image.get_rect(center=(x, y))
-        self.vida = 500  # vida muito maior
-        self.vida_max = 500
-        self.direcao = 1
-        self.vel_horizontal = 4  # mais rápido
-        self.tiro_timer = 60  # intervalo inicial de tiro
-        self.vel_tiro = 10  # tiros mais rápidos
-        self.pos_y_alvo = ALTURA // 4  # fica no topo da tela
-        self.descendo = True
+        self.estado = "caindo"
+        self.timer_salto = 0
 
     def atualizar_posicao(self):
-        # desce até posição alvo, depois fica se movendo lateralmente
-        if self.descendo:
-            if self.rect.centery < self.pos_y_alvo:
-                self.rect.y += self.velocidade * 2
-            else:
-                self.descendo = False
-        else:
-            # movimento lateral
-            self.rect.x += self.direcao * self.vel_horizontal
-            # Mantém o Boss sempre dentro da tela
-            if self.rect.left <= 0:
-                self.rect.left = 0
-                self.direcao *= -1
-            elif self.rect.right >= LARGURA:
-                self.rect.right = LARGURA
-                self.direcao *= -1
-    
-    def tentar_atirar(self):
-        # Boss atira 5 tiros espalhados
-        if self.grupo_tiros is None:
-            return
-        
-        self.tiro_timer -= 1
-        if self.tiro_timer <= 0:
-            # 5 tiros espalhados
-            for offset in [-60, -30, 0, 30, 60]:
-                tiro = TiroBoss(self.rect.centerx + offset, self.rect.bottom, self.vel_tiro)
-                self.grupo_tiros.add(tiro)
-            
-            self.tiro_timer = random.randint(60, 120)
+        if self.estado == "caindo":
+            self.rect.y += self.velocidade
+            if random.randint(0, 100) < 2:
+                self.estado = "parando"
+                self.timer_salto = 40
+        elif self.estado == "parando":
+            self.timer_salto -= 1
+            if self.timer_salto <= 0:
+                self.estado = "caindo"
 
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        
-    def receber_dano(self):
-        self.vida -= 1
-        # efeito visual de dano (pisca)
-        if self.vida % 2 == 0:
-            self.image.fill((255, 200, 200))
-        else:
-            self.image.fill((255, 255, 255))
-        
-        # 5% chance de dropar power-up ao receber dano
-        deve_dropar_powerup = random.random() < 0.05
-        
-        if self.vida <= 0:
+        if self.rect.y > ALTURA:
             self.kill()
-            return True, deve_dropar_powerup  # (morreu, dropar_powerup)
+
+
+# ROBO CAÇADOR
+class RoboCacador(Robo):
+    def __init__(self, x, y, jogador, grupo_tiros=None):
+        super().__init__(x, y, velocidade=2.5, grupo_tiros=grupo_tiros)
+        self.jogador = jogador
+        try:
+            CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboCacador.png")
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image = pygame.transform.rotate(imagem_original, -90)
+            self.image = pygame.transform.scale(self.image, (128, 128))
+        except:
+            self.image.fill((255, 165, 0))
+
+        self.rect = self.image.get_rect(center=(x, y))
+
+    def atualizar_posicao(self):
+        self.rect.y += self.velocidade
         
-        return False, deve_dropar_powerup  # (ainda vivo, dropar_powerup)
-         
+        if self.jogador:
+            dx = self.jogador.rect.centerx - self.rect.centerx
+            if dx > 0:
+                self.rect.x += 1
+            elif dx < 0:
+                self.rect.x -= 1
+
+    def update(self):
+        self.atualizar_posicao()
+        self.tentar_atirar()
+        if self.rect.y > ALTURA:
+            self.kill()
 
 
+# EXPLOSAO
 class Explosao(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-
-        self.frames = []
-        self.frame_atual = 0
-
-        for i in range(12):
-            img = pygame.Surface((80, 80), pygame.SRCALPHA)
-
-            # tamanho da explosão
-            raio = 28 - i * 2
-            if raio < 0:
-                raio = 0
-
-            cx, cy = 40, 40
-
-            # cor e transparência
-            cor = (180, 0, 255)
-            alpha = max(220 - i * 15, 0)
-
-            # forma irregular
-            largura = raio * 2 + random.randint(-8, 8)
-            altura  = raio * 2 + random.randint(-8, 8)
-
-            pygame.draw.ellipse(
-                img,
-                (*cor, alpha),
-                (cx - largura//2, cy - altura//2, largura, altura)
-            )
-
-            # pequenas partículas
-            for _ in range(14):
-                px = cx + random.randint(-raio // 2, raio // 2)
-                py = cy + random.randint(-raio // 2, raio // 2)
-
-                tamanho = random.randint(1, 2)
-                alpha_p = max(130 - i * 15, 0)
-
-                pygame.draw.circle(
-                    img,
-                    (200, 0, 255, alpha_p),
-                    (px, py),
-                    tamanho
-                )
-
-            self.frames.append(img)
-
-        self.image = self.frames[0]
+        self.tamanho = 10
+        self.image = pygame.Surface((self.tamanho * 2, self.tamanho * 2), pygame.SRCALPHA)
         self.rect = self.image.get_rect(center=(x, y))
-
+        self.vida_util = 20
+        
     def update(self):
-        self.frame_atual += 0.6
-
-        # remove quando acabar
-        if self.frame_atual >= len(self.frames):
+        self.vida_util -= 1
+        self.tamanho += 2
+        
+        tamanho_atual = int(self.tamanho)
+        self.image = pygame.Surface((tamanho_atual * 2, tamanho_atual * 2), pygame.SRCALPHA)
+        self.rect = self.image.get_rect(center=self.rect.center)
+        
+        alpha = max(0, min(255, int(255 * (self.vida_util / 20))))
+        cor = (255, random.randint(0, 150), 0, alpha)
+        
+        pygame.draw.circle(self.image, cor, (tamanho_atual, tamanho_atual), tamanho_atual)
+        
+        if self.vida_util <= 0:
             self.kill()
+
+
+# BOSS FINAL
+class Boss(Robo):
+    def __init__(self, x, y, grupo_tiros=None, jogador_alvo=None):
+        super().__init__(x, y, velocidade=2, grupo_tiros=grupo_tiros)
+        
+        self.jogador_alvo = jogador_alvo
+        
+        try:
+            CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "boss.png")
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+            self.image_original = pygame.transform.rotate(imagem_original, 180)
+            self.image_original = pygame.transform.scale(self.image_original, (250, 250))
+        except:
+            self.image_original = pygame.Surface((220, 160))
+            self.image_original.fill((80, 0, 80))
+            pygame.draw.rect(self.image_original, (150, 0, 150), (20, 20, 180, 120))
+
+        self.image = self.image_original.copy()
+        self.rect = self.image.get_rect(center=(x, y))
+        
+        self.max_vida = 500
+        self.vida = self.max_vida
+        self.rage_mode = False
+        
+        self.estado = "ENTRANDO"
+        self.y_base = 120
+        self.movendo_direita = True
+        self.hover_timer = 0
+        
+        self.dash_cooldown = 0
+        self.dash_delay = 300
+        self.velocidade_mergulho = 12
+        
+        self.tiro_timer = 60 
+
+    def verificar_rage_mode(self):
+        if self.vida <= (self.max_vida * 0.5) and not self.rage_mode:
+            self.rage_mode = True
+            tint = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
+            tint.fill((100, 0, 0, 100))
+            self.image_original.blit(tint, (0,0), special_flags=pygame.BLEND_ADD)
+            self.image = self.image_original.copy()
+
+    def atualizar_posicao(self):
+        self.verificar_rage_mode()
+        self.hover_timer += 0.1
+
+        if self.estado == "ENTRANDO":
+            self.rect.y += 3
+            if self.rect.centery >= self.y_base:
+                self.rect.centery = self.y_base
+                self.estado = "PATRULHANDO"
+
+        elif self.estado == "PATRULHANDO":
+            vel_atual = 5 if self.rage_mode else 2
+            
+            if self.movendo_direita:
+                self.rect.x += vel_atual
+                if self.rect.right >= LARGURA - 10:
+                    self.movendo_direita = False
+            else:
+                self.rect.x -= vel_atual
+                if self.rect.left <= 10:
+                    self.movendo_direita = True
+            
+            flutuacao = math.sin(self.hover_timer) * 10
+            self.rect.centery = self.y_base + flutuacao
+
+            if self.rage_mode:
+                self.dash_cooldown += 1
+                if self.dash_cooldown > self.dash_delay:
+                    self.estado = "MERGULHANDO"
+                    self.dash_cooldown = 0
+                    if self.jogador_alvo:
+                        if self.jogador_alvo.rect.centerx > self.rect.centerx:
+                             self.movendo_direita = True
+                        else:
+                             self.movendo_direita = False
+
+        elif self.estado == "MERGULHANDO":
+            self.rect.y += self.velocidade_mergulho
+            self.rect.x += random.choice([-2, 2]) 
+            
+            if self.rect.bottom >= ALTURA - 50:
+                self.estado = "RETORNANDO"
+
+        elif self.estado == "RETORNANDO":
+            self.rect.y -= (self.velocidade_mergulho - 4)
+            if self.rect.centery <= self.y_base:
+                self.rect.centery = self.y_base
+                self.estado = "PATRULHANDO"
+                self.dash_delay = random.randint(180, 400)
+
+    def tentar_atirar(self):
+        if self.grupo_tiros is None or self.estado == "ENTRANDO":
             return
 
-        self.image = self.frames[int(self.frame_atual)]
+        self.tiro_timer -= 1
+        
+        cooldown_tiro = 35 if self.rage_mode else 55
+        
+        if self.tiro_timer <= 0:
+            cx, cy = self.rect.centerx, self.rect.bottom - 20
+            vel_tiro = 7 if not self.rage_mode else 9
+            
+            tiro_mid = TiroBoss(cx, cy, vy=vel_tiro, vx=0)
+            
+            tiro_left = TiroBoss(cx - 20, cy - 10, vy=vel_tiro * 0.9, vx=-3)
+            tiro_right = TiroBoss(cx + 20, cy - 10, vy=vel_tiro * 0.9, vx=3)
+            
+            self.grupo_tiros.add(tiro_mid, tiro_left, tiro_right)
+            
+            if self.rage_mode:
+                tiro_ext_left = TiroBoss(cx - 40, cy - 20, vy=vel_tiro * 0.8, vx=-5)
+                tiro_ext_right = TiroBoss(cx + 40, cy - 20, vy=vel_tiro * 0.8, vx=5)
+                self.grupo_tiros.add(tiro_ext_left, tiro_ext_right)
 
+            self.tiro_timer = cooldown_tiro
+
+    def receber_dano(self):
+        self.vida -= 10
+        dropar = (self.vida % 80 == 0)
+        return self.vida <= 0, dropar
+
+    def update(self):
+        self.atualizar_posicao()
+        self.tentar_atirar()

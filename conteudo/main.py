@@ -247,9 +247,9 @@ while rodando:
             fase_atual += 1
             temporizador_spawn = 0
             
-            # Spawnar boss ao entrar na fase 4
+          # Spawnar boss ao entrar na fase 4
             if fase_atual == 4 and not boss_spawnou:
-                boss = Boss(LARGURA // 2, -100, grupo_tiros=tiros_inimigos)
+                boss = Boss(LARGURA // 2, -100, grupo_tiros=tiros_inimigos, jogador_alvo=jogador)
                 todos_sprites.add(boss)
                 inimigos.add(boss)
                 boss_ativo = True
