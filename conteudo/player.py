@@ -7,7 +7,7 @@ class Jogador(Entidade):
     def __init__(self, x, y):
         super().__init__(x, y, 7)
         self.image.fill((0, 255, 0))  # verde
-        self.vida = 5
+        self.vida = 10
         self.velocidade_base = 7
         self.velocidade = self.velocidade_base
         self.velocidade_timer = 0

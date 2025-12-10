@@ -39,10 +39,17 @@ SOM_EXPLOSAO.set_volume(0.4)
 
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
 CAMINHO_BACKGROUND = os.path.join(
-    os.path.dirname(__file__), "assets", "images", "background-teste.png"
+    os.path.dirname(__file__), "assets", "images", "background-fases-normais.png"
 )
 BACKGROUND = pygame.image.load(CAMINHO_BACKGROUND)
 BACKGROUND = pygame.transform.scale(BACKGROUND, (LARGURA, ALTURA))
+
+# Background da Fase Secreta
+CAMINHO_BACKGROUND_CAOS = os.path.join(
+    os.path.dirname(__file__), "assets", "images", "background-fase-secreta.png"
+)
+BACKGROUND_CAOS = pygame.image.load(CAMINHO_BACKGROUND_CAOS)
+BACKGROUND_CAOS = pygame.transform.scale(BACKGROUND_CAOS, (LARGURA, ALTURA))
 
 pygame.display.set_caption("Robot Defense - Template")
 clock = pygame.time.Clock()
@@ -62,9 +69,9 @@ todos_sprites.add(jogador)
 
 pontos = 0
 temporizador_spawn = 0
-estado = "menu"  # menu, jogando, pausado, game_over, vitoria
-fade_alpha = 0
-fade_direcao = 1
+estado = "menu"  # menu, jogando, pausado, game_over, vitoria, transicao_caos
+fade_alpha = 255  # Começa com tela preta para fade in inicial
+fade_direcao = -1  # -1 = fade in (clarear)
 fase_atual = 1
 opcao_menu = 0  # 0 = Iniciar, 1 = Sair
 opcao_pausa = 0  # 0 = Continuar, 1 = Sair
@@ -72,6 +79,9 @@ cadencia_tiro = 0  # cooldown para rajada automática
 musica_atual = None  # controle da música tocando
 boss_ativo = False
 boss_spawnou = False
+inimigos_escapados = 0  # Contador para Easter Egg
+fase_caos_desbloqueada = False  # Flag para Fase do Caos
+timer_transicao_caos = 0  # Timer para a tela de transição
 
 # Configuração de fases
 FASES = {
@@ -87,8 +97,13 @@ FASES = {
         "robos": ["rapido", "cacador", "ciclico"],
     },
     4: {
-        "nome": "Fase 4: Completa",
+        "nome": "Fase 4: Boss Final",
         "duracao": 9999999,
+        "robos": [],
+    },
+    5: {
+        "nome": "FASE DO CAOS",
+        "duracao": 1800,  # 30 segundos de caos puro
         "robos": ["lento", "rapido", "saltador", "ziguezague", "cacador", "ciclico"],
     },
 }
@@ -110,12 +125,16 @@ def resetar_jogo():
         powerups, \
         musica_atual, \
         boss_ativo, \
-        boss_spawnou
+        boss_spawnou, \
+        inimigos_escapados, \
+        fase_caos_desbloqueada
     pontos = 0
     temporizador_spawn = 0
     fase_atual = 1
     boss_ativo = False
     boss_spawnou = False
+    inimigos_escapados = 0
+    fase_caos_desbloqueada = False
     todos_sprites.empty()
     inimigos.empty()
     tiros.empty()
@@ -125,7 +144,7 @@ def resetar_jogo():
     todos_sprites.add(jogador)
     estado = "jogando"
     fade_alpha = 0
-    fade_direcao = 1
+    fade_direcao = 0
     
     # Iniciar música de fundo das fases normais
     if os.path.exists(CAMINHO_MUSICA_BACKGROUND):
@@ -237,15 +256,41 @@ while rodando:
                 estado = "menu"
                 opcao_menu = 0
 
+    # Processar tela de transição para Fase do Caos
+    if estado == "transicao_caos":
+        timer_transicao_caos += 1
+        # Após 4 segundos (240 frames), iniciar Fase do Caos
+        if timer_transicao_caos >= 240:
+            estado = "jogando"
+            fase_atual = 5
+            temporizador_spawn = 0
+            
+            # Power-ups especiais no início
+            jogador.aplicar_powerup("tiro_triplo")
+            jogador.aplicar_powerup("velocidade")
+            jogador.vida = min(jogador.vida + 3, 10)  # Recupera vida
+
+    # Processar fade in inicial
+    if fade_direcao == -1:
+        fade_alpha -= 8
+        if fade_alpha <= 0:
+            fade_alpha = 0
+            fade_direcao = 0
+    
     if estado == "jogando":
         temporizador_spawn += 1
 
         # Verificar progressão de fase
-        if temporizador_spawn >= FASES[fase_atual]["duracao"] and fase_atual < len(
-            FASES
-        ):
-            fase_atual += 1
-            temporizador_spawn = 0
+        if temporizador_spawn >= FASES[fase_atual]["duracao"]:
+            # Vitória na Fase do Caos
+            if fase_atual == 5:
+                estado = "vitoria"
+                fade_alpha = 0
+                fade_direcao = 1
+                pygame.mixer.music.stop()
+            elif fase_atual < len(FASES):
+                fase_atual += 1
+                temporizador_spawn = 0
             
             # Spawnar boss ao entrar na fase 4
             if fase_atual == 4 and not boss_spawnou:
@@ -263,9 +308,32 @@ while rodando:
                     pygame.mixer.music.play(-1)
                     musica_atual = "boss"
 
-        # Spawnar inimigos da fase atual (apenas nas fases 1-3)
+        # Spawnar inimigos da fase atual
         if fase_atual < 4:
             spawnar_inimigos()
+        elif fase_atual == 5:
+            # FASE DO CAOS - Spawn intensificado
+            spawnar_inimigos()
+            # Spawn extra de inimigos (dobra a quantidade)
+            if temporizador_spawn % 25 == 0:  # Muito mais rápido
+                tipos = ["lento", "rapido", "saltador", "ziguezague", "cacador", "ciclico"]
+                tipo_escolhido = random.choice(tipos)
+                
+                if tipo_escolhido == "lento":
+                    robo = RoboLento(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
+                elif tipo_escolhido == "rapido":
+                    robo = RoboRapido(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
+                elif tipo_escolhido == "saltador":
+                    robo = RoboSaltador(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
+                elif tipo_escolhido == "ziguezague":
+                    robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
+                elif tipo_escolhido == "cacador":
+                    robo = RoboCacador(random.randint(40, LARGURA - 40), -60, jogador, grupo_tiros=tiros_inimigos)
+                else:  # ciclico
+                    robo = RoboCiclico(random.randint(60, LARGURA - 60), -40, grupo_tiros=tiros_inimigos)
+                
+                todos_sprites.add(robo)
+                inimigos.add(robo)
         
         # Sistema de rajada automática ao segurar espaço
         keys = pygame.key.get_pressed()
@@ -314,12 +382,28 @@ while rodando:
                         todos_sprites.add(explosao)
                         pontos += 1000
                         boss_ativo = False
-                        # Vitória ao derrotar o boss
-                        estado = "vitoria"
-                        fade_alpha = 0
-                        fade_direcao = 1
-                        pygame.mixer.music.stop()
                         SOM_EXPLOSAO.play()
+                        
+                        # EASTER EGG: Verificar se nenhum inimigo escapou
+                        print(f"DEBUG: Boss derrotado! Inimigos escapados: {inimigos_escapados}")
+                        if inimigos_escapados == 0:
+                            # Fase do Caos desbloqueada! Ir para tela de transição
+                            estado = "transicao_caos"
+                            timer_transicao_caos = 0
+                            fase_caos_desbloqueada = True
+                            
+                            # Limpar tela
+                            inimigos.empty()
+                            tiros.empty()
+                            tiros_inimigos.empty()
+                            
+                            pygame.mixer.music.stop()
+                        else:
+                            # Vitória normal
+                            estado = "vitoria"
+                            fade_alpha = 0
+                            fade_direcao = 1
+                            pygame.mixer.music.stop()
                 else:
                     # Inimigos normais morrem em 1 tiro
                     explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
@@ -332,12 +416,6 @@ while rodando:
 
         # colisão tiro jogador x tiro inimigo -> ambos somem
         pygame.sprite.groupcollide(tiros, tiros_inimigos, True, True)
-
-        # Verificar vitória
-        if pontos >= 100:
-            estado = "vitoria"
-            fade_alpha = 0
-            fade_direcao = 1
 
         # coleta de power-ups
         coletados = pygame.sprite.spritecollide(jogador, powerups, True)  # type: ignore[arg-type]
@@ -378,10 +456,26 @@ while rodando:
     if estado == "jogando":
         todos_sprites.update()
         tiros_inimigos.update()  # atualiza tiros dos robôs também
+        
+        # Rastrear inimigos que escapam (para Easter Egg)
+        if fase_atual < 4:  # Apenas nas fases 1-3
+            print(f"DEBUG: Verificando escapadas na fase {fase_atual}, total inimigos: {len(inimigos)}")
+            for inimigo in list(inimigos):
+                if not isinstance(inimigo, Boss):
+                    print(f"DEBUG: Inimigo em Y={inimigo.rect.top}, ALTURA={ALTURA}")
+                    if inimigo.rect.top > ALTURA:
+                        inimigos_escapados += 1
+                        print(f"DEBUG: Inimigo escapou! Total escapados: {inimigos_escapados}")
+                        inimigo.kill()  # Remove do grupo de sprites
 
     # desenhar
     TELA.fill((20, 20, 20))
-    TELA.blit(BACKGROUND, (0, 0))
+    
+    # Background especial para Fase do Caos
+    if fase_atual == 5:
+        TELA.blit(BACKGROUND_CAOS, (0, 0))
+    else:
+        TELA.blit(BACKGROUND, (0, 0))
 
     # Painel de pontos e vida
     font = pygame.font.SysFont(None, 30)
@@ -435,8 +529,19 @@ while rodando:
             TELA.blit(texto_power, (10, 40))
 
         # Mostrar fase atual
-        texto_fase = font.render(FASES[fase_atual]["nome"], True, (255, 255, 0))
-        TELA.blit(texto_fase, (LARGURA - texto_fase.get_width() - 10, 10))
+        if fase_atual == 5:
+            # Texto especial para Fase do Caos
+            fonte_caos = pygame.font.Font(CAMINHO_FONTE, 40)
+            texto_fase = fonte_caos.render("!!! FASE DO CAOS !!!", True, (255, 0, 255))
+            TELA.blit(texto_fase, (LARGURA - texto_fase.get_width() - 10, 10))
+            
+            # Contador de tempo restante
+            tempo_restante = (FASES[5]["duracao"] - temporizador_spawn) // FPS
+            texto_tempo = font.render(f"Tempo: {tempo_restante}s", True, (255, 255, 0))
+            TELA.blit(texto_tempo, (LARGURA - texto_tempo.get_width() - 10, 60))
+        else:
+            texto_fase = font.render(FASES[fase_atual]["nome"], True, (255, 255, 0))
+            TELA.blit(texto_fase, (LARGURA - texto_fase.get_width() - 10, 10))
         
         # Mostrar barra de vida do boss se estiver ativo
         if boss_ativo:
@@ -450,7 +555,7 @@ while rodando:
                     # fundo
                     pygame.draw.rect(TELA, (100, 0, 0), (x, y, barra_largura, barra_altura))
                     # vida atual
-                    vida_atual = int((inimigo.vida / 500) * barra_largura)
+                    vida_atual = int((inimigo.vida / 250) * barra_largura)
                     pygame.draw.rect(TELA, (255, 0, 0), (x, y, vida_atual, barra_altura))
                     # borda
                     pygame.draw.rect(TELA, (255, 255, 255), (x, y, barra_largura, barra_altura), 2)
@@ -487,15 +592,7 @@ while rodando:
         TELA.blit(texto_sair, (LARGURA // 2 - 120, ALTURA // 2 + 70))
 
     elif estado == "game_over":
-        # Controle do fade in/out
-        if fade_direcao == 1:
-            fade_alpha += 5
-            if fade_alpha >= 255:
-                fade_alpha = 255
-                fade_direcao = 0  # fade completo, mantém
-
-        # Tela de Game Over com fade
-        
+        # Tela de Game Over
         fonte_grande = pygame.font.Font(CAMINHO_FONTE, 72)
         fonte_media = pygame.font.Font(CAMINHO_FONTE, 40)
         texto_gameover = fonte_grande.render("GAME OVER", True, (255, 0, 0))
@@ -504,16 +601,11 @@ while rodando:
             "Aperte ESPAÇO para voltar ao menu", True, (0, 255, 255)
         )
 
-        # overlay escuro com fade
+        # overlay escuro
         overlay = pygame.Surface((LARGURA, ALTURA))
-        overlay.set_alpha(min(int(fade_alpha * 0.7), 180))
+        overlay.set_alpha(180)
         overlay.fill((0, 0, 0))
         TELA.blit(overlay, (0, 0))
-
-        # textos com fade
-        texto_gameover.set_alpha(fade_alpha)
-        texto_pontos.set_alpha(fade_alpha)
-        texto_restart.set_alpha(fade_alpha)
 
         TELA.blit(
             texto_gameover,
@@ -528,37 +620,70 @@ while rodando:
             (LARGURA // 2 - texto_restart.get_width() // 2, ALTURA // 2 + 40),
         )
 
-    elif estado == "vitoria":
-        # Controle do fade in/out
-        if fade_direcao == 1:
-            fade_alpha += 5
-            if fade_alpha >= 255:
-                fade_alpha = 255
-                fade_direcao = 0
+    elif estado == "transicao_caos":
+        # Tela de Transição para Fase Secreta
+        fonte_enorme = pygame.font.Font(CAMINHO_FONTE, 60)
+        
+        # Texto principal
+        texto_parabens = fonte_enorme.render("PARABÉNS!", True, (255, 215, 0))
+        texto_desbloqueio = fonte_enorme.render("VOCÊ DESBLOQUEOU A", True, (255, 255, 255))
+        texto_fase_secreta = fonte_enorme.render("FASE SECRETA", True, (255, 0, 255))
+        
+        # Overlay escuro
+        overlay = pygame.Surface((LARGURA, ALTURA))
+        overlay.set_alpha(200)
+        overlay.fill((0, 0, 0))
+        TELA.blit(overlay, (0, 0))
+        
+        # Efeito de pulsação no texto
+        pulso = abs(int((timer_transicao_caos % 60) - 30)) / 30
+        alpha = int(150 + 105 * pulso)
+        
+        texto_parabens.set_alpha(alpha)
+        texto_desbloqueio.set_alpha(255)
+        texto_fase_secreta.set_alpha(alpha)
+        
+        TELA.blit(texto_parabens, (LARGURA//2 - texto_parabens.get_width()//2, ALTURA//2 - 150))
+        TELA.blit(texto_desbloqueio, (LARGURA//2 - texto_desbloqueio.get_width()//2, ALTURA//2 - 50))
+        TELA.blit(texto_fase_secreta, (LARGURA//2 - texto_fase_secreta.get_width()//2, ALTURA//2 + 50))
 
-        # Tela de Vitória com fade
+    elif estado == "vitoria":
+        # Tela de Vitória
         fonte_grande = pygame.font.Font(CAMINHO_FONTE, 72)
         fonte_media = pygame.font.Font(CAMINHO_FONTE, 40)
-        texto_vitoria = fonte_grande.render("VITÓRIA!", True, (0, 255, 0))
+        fonte_pequena = pygame.font.Font(CAMINHO_FONTE, 28)
+        
+        # Mensagem especial se completou a Fase do Caos
+        if fase_caos_desbloqueada:
+            texto_vitoria = fonte_grande.render("MESTRE DO CAOS!", True, (255, 0, 255))
+            texto_extra = fonte_media.render("Você dominou a Fase Secreta!", True, (0, 255, 255))
+        else:
+            texto_vitoria = fonte_grande.render("VITÓRIA!", True, (0, 255, 0))
+            texto_extra = None
+            
         texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
-        texto_restart = fonte_media.render(
+        texto_restart = fonte_pequena.render(
             "Aperte ESPAÇO para voltar ao menu", True, (255, 255, 0)
         )
 
-        # overlay escuro com fade
+        # overlay escuro
         overlay = pygame.Surface((LARGURA, ALTURA))
-        overlay.set_alpha(min(int(fade_alpha * 0.7), 180))
+        overlay.set_alpha(180)
         overlay.fill((0, 0, 0))
         TELA.blit(overlay, (0, 0))
-
-        # textos com fade
-        texto_vitoria.set_alpha(fade_alpha)
-        texto_pontos.set_alpha(fade_alpha)
-        texto_restart.set_alpha(fade_alpha)
         
-        TELA.blit(texto_vitoria, (LARGURA//2 - texto_vitoria.get_width()//2, ALTURA//2 - 120))
-        TELA.blit(texto_pontos, (LARGURA//2 - texto_pontos.get_width()//2, ALTURA//2 - 40))
+        TELA.blit(texto_vitoria, (LARGURA//2 - texto_vitoria.get_width()//2, ALTURA//2 - 140))
+        if texto_extra:
+            TELA.blit(texto_extra, (LARGURA//2 - texto_extra.get_width()//2, ALTURA//2 - 80))
+        TELA.blit(texto_pontos, (LARGURA//2 - texto_pontos.get_width()//2, ALTURA//2 - 20))
         TELA.blit(texto_restart, (LARGURA//2 - texto_restart.get_width()//2, ALTURA//2 + 40))
+
+    # Fade overlay global (para todas as transições)
+    if fade_alpha > 0:
+        fade_overlay = pygame.Surface((LARGURA, ALTURA))
+        fade_overlay.fill((0, 0, 0))
+        fade_overlay.set_alpha(fade_alpha)
+        TELA.blit(fade_overlay, (0, 0))
 
     pygame.display.flip()
 
