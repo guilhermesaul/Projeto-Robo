@@ -50,7 +50,7 @@ class Jogador(Entidade):
             self.vida = min(self.vida + 1, 9)
         elif tipo == "tiro_triplo":
             # acumula tempo caso pegue outro enquanto ativo
-            self.tiro_triplo_timer = min(self.tiro_triplo_timer + 600, 140)
+            self.tiro_triplo_timer = min(self.tiro_triplo_timer + 600, 600)
         else:
             raise ValueError(f"Power-up desconhecido: {tipo}")
 
