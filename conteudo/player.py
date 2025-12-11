@@ -44,13 +44,12 @@ class Jogador(Entidade):
 
     def aplicar_powerup(self, tipo: str):
         if tipo == "velocidade":
-            self.velocidade_timer = 600 
+            self.velocidade_timer += 600 
             self.velocidade = self.velocidade_base + 4
         elif tipo == "vida":
             self.vida = min(self.vida + 1, 9)
         elif tipo == "tiro_triplo":
-            # acumula tempo caso pegue outro enquanto ativo
-            self.tiro_triplo_timer = min(self.tiro_triplo_timer + 600, 600)
+            self.tiro_triplo_timer += 600
         else:
             raise ValueError(f"Power-up desconhecido: {tipo}")
 
