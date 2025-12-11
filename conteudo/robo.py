@@ -21,7 +21,6 @@ class TiroBoss(pygame.sprite.Sprite):
         if self.rect.top > ALTURA:
             self.kill()
 
-
 # ROBO BASE
 class Robo(Entidade):
     def __init__(self, x, y, velocidade, grupo_tiros=None):
@@ -80,7 +79,7 @@ class TiroRobo(Entidade):
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "shot_exp1.png")
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (96, 96))
+        self.image = pygame.transform.scale(self.image, (150, 150))
         self.rect = self.image.get_rect(center=(x, y))
 
         self.velocidade = velocidade
@@ -246,9 +245,10 @@ class RoboSaltador(Robo):
 class RoboCacador(Robo):
     def __init__(self, x, y, alvo, grupo_tiros=None):
         super().__init__(x, y, velocidade = 2.2, grupo_tiros=grupo_tiros)
-        # Quadrado branco 128x128
-        self.image = pygame.Surface((128, 128))
-        self.image.fill((255, 255, 255))
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCacador.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (128, 128))
         self.rect = self.image.get_rect(topleft=(x, y))
         self.alvo = alvo
 

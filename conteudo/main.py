@@ -20,6 +20,102 @@ from robo import (
 pygame.init()
 pygame.mixer.init()
 
+# Cores para o menu
+COR_FUNDO_MENU = (20, 15, 30)       # Roxo bem escuro
+COR_TITULO_1 = (255, 160, 50)       # Laranja
+COR_TITULO_2 = (50, 150, 255)       # Azul
+COR_BOTAO_BG = (40, 40, 70)         # Azul acinzentado escuro
+COR_BOTAO_HOVER = (60, 60, 100)     # Azul um pouco mais claro
+COR_TEXTO = (255, 255, 255)         # Branco
+COR_BORDA_HOVER = (255, 140, 0)     # Laranja para a borda
+
+# Classe do Botão
+class Button:
+    def __init__(self, text, x, y, width, height, fonte):
+        self.text = text
+        self.rect = pygame.Rect(x, y, width, height)
+        self.color = COR_BOTAO_BG
+        self.hovered = False
+        self.fonte = fonte
+
+    def draw(self, surface):
+        # Muda cor e borda se o mouse estiver em cima
+        if self.hovered:
+            pygame.draw.rect(surface, COR_BOTAO_HOVER, self.rect, border_radius=8)
+            pygame.draw.rect(surface, COR_BORDA_HOVER, self.rect, 3, border_radius=8)
+        else:
+            pygame.draw.rect(surface, COR_BOTAO_BG, self.rect, border_radius=8)
+            pygame.draw.rect(surface, (20, 20, 40), self.rect, 3, border_radius=8)
+
+        # Renderiza o texto centralizado no botão
+        text_surf = self.fonte.render(self.text, True, COR_TEXTO)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        surface.blit(text_surf, text_rect)
+
+    def check_hover(self, mouse_pos):
+        self.hovered = self.rect.collidepoint(mouse_pos)
+        return self.hovered
+
+    def is_clicked(self, mouse_pos):
+        return self.rect.collidepoint(mouse_pos)
+
+# Classe do Slider para controle de volume
+class Slider:
+    def __init__(self, x, y, width, height, label, fonte):
+        self.center_x = x  # Centro horizontal
+        self.rect = pygame.Rect(x - width//2, y, width, height)  # Rect ajustado para estar centralizado
+        self.label = label
+        self.fonte = fonte
+        self.value = 1.0  # Valor entre 0 e 1 (100% por padrão)
+        self.dragging = False
+
+    def draw(self, surface):
+        # Desenhar label acima do slider, centralizado
+        label_surf = self.fonte.render(self.label, True, COR_TEXTO)
+        label_x = self.center_x - label_surf.get_width()//2
+        surface.blit(label_surf, (label_x, self.rect.y - 50))
+        
+        # Desenhar barra de fundo
+        pygame.draw.rect(surface, (50, 50, 50), self.rect, border_radius=5)
+        
+        # Desenhar barra preenchida
+        filled_width = int(self.rect.width * self.value)
+        filled_rect = pygame.Rect(self.rect.x, self.rect.y, filled_width, self.rect.height)
+        pygame.draw.rect(surface, COR_TITULO_1, filled_rect, border_radius=5)
+        
+        # Desenhar círculo do slider
+        slider_x = self.rect.x + filled_width
+        pygame.draw.circle(surface, COR_BORDA_HOVER, (slider_x, self.rect.centery), 8)
+        
+        # Desenhar percentual à direita
+        percent_text = self.fonte.render(f"{int(self.value * 100)}%", True, COR_TEXTO)
+        surface.blit(percent_text, (self.rect.right + 20, self.rect.y - 5))
+
+    def check_hover(self, mouse_pos):
+        slider_rect = pygame.Rect(
+            self.rect.x - 8,
+            self.rect.y - 8,
+            self.rect.width + 16,
+            self.rect.height + 16
+        )
+        return slider_rect.collidepoint(mouse_pos)
+
+    def start_drag(self, mouse_pos):
+        if self.check_hover(mouse_pos):
+            self.dragging = True
+            self.update(mouse_pos)  # Atualizar imediatamente ao começar o drag
+
+    def stop_drag(self):
+        self.dragging = False
+
+    def update(self, mouse_pos):
+        if self.dragging:
+            # Calcular novo valor baseado na posição do mouse
+            relative_x = mouse_pos[0] - self.rect.x
+            self.value = max(0, min(1, relative_x / self.rect.width))
+
+
+
 CAMINHO_SOM_LASER = os.path.join(
     os.path.dirname(__file__), "assets", "audios", "laser-shot.wav"
 )
@@ -72,12 +168,11 @@ todos_sprites.add(jogador)
 
 pontos = 0
 temporizador_spawn = 0
-estado = "menu"  # menu, jogando, pausado, game_over, vitoria, transicao_caos
+estado = "menu"  # menu, opcoes, jogando, pausado, game_over, vitoria, transicao_caos
 fade_alpha = 255  # Começa com tela preta para fade in inicial
 fade_direcao = -1  # -1 = fade in (clarear)
 fase_atual = 1
-opcao_menu = 0  # 0 = Iniciar, 1 = Sair
-opcao_pausa = 0  # 0 = Continuar, 1 = Sair
+estado_anterior = None  # Para rastrear de onde veio para opções
 cadencia_tiro = 0  # cooldown para rajada automática
 musica_atual = None  # controle da música tocando
 musica_fade_out = False  # flag para fade out em progresso
@@ -101,7 +196,7 @@ FASES = {
         "nome": "Fase 3: Caçadores",
         "duracao": 900,
         "robos": ["rapido", "cacador", "ciclico"],
-    },
+    },  
     4: {
         "nome": "Fase 4: Boss Final",
         "duracao": 9999999,
@@ -198,7 +293,7 @@ def spawnar_inimigos():
     # RoboZigueZague
     if "ziguezague" in robos_permitidos and temporizador_spawn % 80 == 0:
         robo = RoboZigueZague(
-            random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos
+            random.randint(100, LARGURA - 100), -40, grupo_tiros=tiros_inimigos
         )
         todos_sprites.add(robo)
         inimigos.add(robo)
@@ -228,6 +323,43 @@ def tentar_drop_powerup(inimigo):
         todos_sprites.add(powerup)
         powerups.add(powerup)
 
+# Carregar fonte para os botões do menu
+CAMINHO_FONTE_MENU = os.path.join(os.path.dirname(__file__), "assets", "fonts", "PressStart2P-Regular.ttf")
+try:
+    fonte_botoes_menu = pygame.font.Font(CAMINHO_FONTE_MENU, 16)
+except:
+    fonte_botoes_menu = pygame.font.SysFont("arial", 16, bold=True)
+
+# Criar botões do menu
+botoes_menu = [
+    Button("INICIAR JOGO", LARGURA//2 - 125, 420, 250, 50, fonte_botoes_menu),
+    Button("OPÇÕES", LARGURA//2 - 125, 480, 250, 50, fonte_botoes_menu),
+    Button("SAIR", LARGURA//2 - 125, 540, 250, 50, fonte_botoes_menu)
+]
+
+# Criar sliders para opções
+try:
+    fonte_slider = pygame.font.Font(CAMINHO_FONTE_MENU, 14)
+except:
+    fonte_slider = pygame.font.SysFont("arial", 14, bold=True)
+
+sliders = [
+    Slider(LARGURA//2, 420, 200, 20, "VOLUME MUSICA  ", fonte_slider),
+    Slider(LARGURA//2, 550, 200, 20, "VOLUME EFEITOS", fonte_slider)
+]
+
+# Botão voltar no menu de opções
+botao_voltar = Button("VOLTAR", LARGURA//2 - 75, 600, 150, 50, fonte_botoes_menu)
+
+# Criar botões do menu de pausa
+botoes_pausa = [
+    Button("CONTINUAR", LARGURA//2 - 125, 320, 250, 50, fonte_botoes_menu),
+    Button("OPÇÕES", LARGURA//2 - 125, 380, 250, 50, fonte_botoes_menu),
+    Button("SAIR", LARGURA//2 - 125, 440, 250, 50, fonte_botoes_menu)
+]
+
+# Botão voltar no game over e vitória
+botao_voltar_menu = Button("VOLTAR AO MENU", LARGURA//2 - 125, 420, 250, 50, fonte_botoes_menu)
 
 rodando = True
 while rodando:
@@ -238,14 +370,40 @@ while rodando:
             rodando = False
 
         if estado == "menu":
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                    opcao_menu = 1 - opcao_menu
-                elif event.key == pygame.K_RETURN:
-                    if opcao_menu == 0:
-                        resetar_jogo()
-                    else:
-                        rodando = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                for btn in botoes_menu:
+                    if btn.is_clicked(mouse_pos):
+                        if btn.text == "INICIAR JOGO":
+                            resetar_jogo()
+                        elif btn.text == "OPÇÕES":
+                            estado = "opcoes"
+                        elif btn.text == "SAIR":
+                            rodando = False
+            elif event.type == pygame.MOUSEBUTTONUP:
+                for slider in sliders:
+                    slider.stop_drag()
+
+        elif estado == "opcoes":
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if botao_voltar.is_clicked(mouse_pos):
+                    estado = estado_anterior if estado_anterior else "menu"
+                    estado_anterior = None
+                for slider in sliders:
+                    slider.start_drag(mouse_pos)
+            elif event.type == pygame.MOUSEBUTTONUP:
+                for slider in sliders:
+                    slider.stop_drag()
+            elif event.type == pygame.MOUSEMOTION:
+                mouse_pos = pygame.mouse.get_pos()
+                # Apenas atualizar sliders que estão sendo arrastados
+                for i, slider in enumerate(sliders):
+                    slider.update(mouse_pos)
+                # Atualizar volumes em tempo real baseado em cada slider
+                pygame.mixer.music.set_volume(sliders[0].value)
+                SOM_LASER.set_volume(sliders[1].value)
+                SOM_EXPLOSAO.set_volume(sliders[1].value)
 
         elif estado == "jogando":
             if event.type == pygame.KEYDOWN:
@@ -253,20 +411,25 @@ while rodando:
                     estado = "pausado"
 
         elif estado == "pausado":
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_UP or event.key == pygame.K_DOWN:
-                    opcao_pausa = 1 - opcao_pausa
-                elif event.key == pygame.K_RETURN:
-                    if opcao_pausa == 0:
-                        estado = "jogando"
-                    else:
-                        estado = "menu"
-                        opcao_menu = 0
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                for btn in botoes_pausa:
+                    if btn.is_clicked(mouse_pos):
+                        if btn.text == "CONTINUAR":
+                            estado = "jogando"
+                        elif btn.text == "OPÇÕES":
+                            estado_anterior = "pausado"
+                            estado = "opcoes"
+                        elif btn.text == "SAIR":
+                            estado = "menu"
+                            opcao_menu = 0
 
         elif estado == "game_over" or estado == "vitoria":
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                estado = "menu"
-                opcao_menu = 0
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                mouse_pos = pygame.mouse.get_pos()
+                if botao_voltar_menu.is_clicked(mouse_pos):
+                    estado = "menu"
+                    opcao_menu = 0
 
     # Processar tela de transição para Fase do Caos
     if estado == "transicao_caos":
@@ -338,7 +501,7 @@ while rodando:
                 elif tipo_escolhido == "saltador":
                     robo = RoboSaltador(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
                 elif tipo_escolhido == "ziguezague":
-                    robo = RoboZigueZague(random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos)
+                    robo = RoboZigueZague(random.randint(100, LARGURA - 100), -40, grupo_tiros=tiros_inimigos)
                 elif tipo_escolhido == "cacador":
                     robo = RoboCacador(random.randint(40, LARGURA - 40), -60, jogador, grupo_tiros=tiros_inimigos)
                 else:  # ciclico
@@ -518,26 +681,31 @@ while rodando:
     font = pygame.font.SysFont(None, 30)
 
     if estado == "menu":
-        # Menu inicial
-        CAMINHO_FONTE = os.path.join(os.path.dirname(__file__), "assets", "fonte", "Orbitron-VariableFont_wght.ttf")
-        fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 80)
-        fonte_opcao = pygame.font.Font(CAMINHO_FONTE, 50)
-                
-        titulo = fonte_titulo.render("ROBOT DEFENSE", True, (0, 255, 255))
-        TELA.blit(titulo, (LARGURA // 2 - titulo.get_width() // 2, ALTURA // 2 - 150))
-
-        cor_iniciar = (255, 255, 0) if opcao_menu == 0 else (255, 255, 255)
-        cor_sair = (255, 255, 0) if opcao_menu == 1 else (255, 255, 255)
+        # Menu com botões - usando background do jogo
+        TELA.blit(BACKGROUND, (0, 0))
         
-        texto_iniciar = fonte_opcao.render("► INICIAR" if opcao_menu == 0 else "  INICIAR", True, cor_iniciar)
-        texto_sair = fonte_opcao.render("► SAIR" if opcao_menu == 1 else "  SAIR", True, cor_sair)
+        # Overlay escuro para melhor legibilidade do texto
+        overlay = pygame.Surface((LARGURA, ALTURA))
+        overlay.set_alpha(80)
+        overlay.fill((0, 0, 0))
+        TELA.blit(overlay, (0, 0))
         
-        TELA.blit(texto_iniciar, (LARGURA//2 - 80, ALTURA//2 + 20))
-        TELA.blit(texto_sair, (LARGURA//2 - 80, ALTURA//2 + 80))
+        # Carregar fonte para título
+        CAMINHO_FONTE = os.path.join(os.path.dirname(__file__), "assets", "fonts", "PressStart2P-Regular.ttf")
+        try:
+            fonte_titulo_grande = pygame.font.Font(CAMINHO_FONTE, 45)
+        except:
+            fonte_titulo_grande = pygame.font.SysFont("arial", 45, bold=True)
         
-        fonte_info = pygame.font.Font(CAMINHO_FONTE, 28)
-        info = fonte_info.render("Use SETAS e ENTER para navegar", True, (150, 150, 150))
-        TELA.blit(info, (LARGURA//2 - info.get_width()//2, ALTURA - 50))
+        # Desenhar título com estilo de duas cores
+        titulo1 = fonte_titulo_grande.render("JORNADA COSMICA", True, COR_TITULO_1)
+        TELA.blit(titulo1, (LARGURA//2 - titulo1.get_width()//2, ALTURA//2 - 100))
+        
+        # Atualizar e desenhar botões
+        mouse_pos = pygame.mouse.get_pos()
+        for btn in botoes_menu:
+            btn.check_hover(mouse_pos)
+            btn.draw(TELA)
     
     elif estado == "jogando":
         # Desenhar sprites apenas quando jogando
@@ -568,7 +736,7 @@ while rodando:
         # Mostrar fase atual
         if fase_atual == 5:
             # Texto especial para Fase do Caos
-            fonte_caos = pygame.font.Font(CAMINHO_FONTE, 40)
+            fonte_caos = pygame.font.Font(CAMINHO_FONTE, 20)
             texto_fase = fonte_caos.render("!!! FASE DO CAOS !!!", True, (255, 0, 255))
             TELA.blit(texto_fase, (LARGURA - texto_fase.get_width() - 10, 10))
             
@@ -607,36 +775,24 @@ while rodando:
         overlay.fill((0, 0, 0))
         TELA.blit(overlay, (0, 0))
         
-        fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 80)
+        fonte_titulo = pygame.font.Font(CAMINHO_FONTE, 40)
         fonte_titulo.set_bold(True)
-
-        fonte_opcao = pygame.font.Font(CAMINHO_FONTE, 50)
         
         titulo = fonte_titulo.render("PAUSADO", True, (255, 255, 0))
-        TELA.blit(titulo, (LARGURA // 2 - titulo.get_width() // 2, ALTURA // 2 - 120))
-
-        cor_continuar = (255, 255, 0) if opcao_pausa == 0 else (255, 255, 255)
-        cor_sair = (255, 255, 0) if opcao_pausa == 1 else (255, 255, 255)
-
-        texto_continuar = fonte_opcao.render(
-            "► CONTINUAR" if opcao_pausa == 0 else "  CONTINUAR", True, cor_continuar
-        )
-        texto_sair = fonte_opcao.render(
-            "► SAIR" if opcao_pausa == 1 else "  SAIR", True, cor_sair
-        )
-
-        TELA.blit(texto_continuar, (LARGURA // 2 - 120, ALTURA // 2))
-        TELA.blit(texto_sair, (LARGURA // 2 - 120, ALTURA // 2 + 70))
+        TELA.blit(titulo, (LARGURA // 2 - titulo.get_width() // 2, ALTURA // 2 - 150))
+        
+        # Desenhar botões de pausa
+        mouse_pos = pygame.mouse.get_pos()
+        for btn in botoes_pausa:
+            btn.check_hover(mouse_pos)
+            btn.draw(TELA)
 
     elif estado == "game_over":
         # Tela de Game Over
-        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 72)
-        fonte_media = pygame.font.Font(CAMINHO_FONTE, 40)
+        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 36)
+        fonte_media = pygame.font.Font(CAMINHO_FONTE, 20)
         texto_gameover = fonte_grande.render("GAME OVER", True, (255, 0, 0))
         texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
-        texto_restart = fonte_media.render(
-            "Aperte ESPAÇO para voltar ao menu", True, (0, 255, 255)
-        )
 
         # overlay escuro
         overlay = pygame.Surface((LARGURA, ALTURA))
@@ -652,14 +808,15 @@ while rodando:
             texto_pontos,
             (LARGURA // 2 - texto_pontos.get_width() // 2, ALTURA // 2 - 40),
         )
-        TELA.blit(
-            texto_restart,
-            (LARGURA // 2 - texto_restart.get_width() // 2, ALTURA // 2 + 40),
-        )
+        
+        # Desenhar botão voltar
+        mouse_pos = pygame.mouse.get_pos()
+        botao_voltar_menu.check_hover(mouse_pos)
+        botao_voltar_menu.draw(TELA)
 
     elif estado == "transicao_caos":
         # Tela de Transição para Fase Secreta
-        fonte_enorme = pygame.font.Font(CAMINHO_FONTE, 60)
+        fonte_enorme = pygame.font.Font(CAMINHO_FONTE, 30)
         
         # Texto principal
         texto_parabens = fonte_enorme.render("PARABÉNS!", True, (255, 215, 0))
@@ -684,11 +841,39 @@ while rodando:
         TELA.blit(texto_desbloqueio, (LARGURA//2 - texto_desbloqueio.get_width()//2, ALTURA//2 - 50))
         TELA.blit(texto_fase_secreta, (LARGURA//2 - texto_fase_secreta.get_width()//2, ALTURA//2 + 50))
 
+    elif estado == "opcoes":
+        # Menu de opções
+        TELA.blit(BACKGROUND, (0, 0))
+        
+        # Overlay escuro
+        overlay = pygame.Surface((LARGURA, ALTURA))
+        overlay.set_alpha(80)
+        overlay.fill((0, 0, 0))
+        TELA.blit(overlay, (0, 0))
+        
+        # Título
+        CAMINHO_FONTE = os.path.join(os.path.dirname(__file__), "assets", "fonts", "PressStart2P-Regular.ttf")
+        try:
+            fonte_titulo_opcoes = pygame.font.Font(CAMINHO_FONTE, 45)
+        except:
+            fonte_titulo_opcoes = pygame.font.SysFont("arial", 45, bold=True)
+        
+        titulo_opcoes = fonte_titulo_opcoes.render("OPÇÕES", True, COR_TITULO_1)
+        TELA.blit(titulo_opcoes, (LARGURA//2 - titulo_opcoes.get_width()//2, ALTURA//2-125))
+        
+        # Desenhar sliders
+        for slider in sliders:
+            slider.draw(TELA)
+        
+        # Desenhar botão voltar
+        mouse_pos = pygame.mouse.get_pos()
+        botao_voltar.check_hover(mouse_pos)
+        botao_voltar.draw(TELA)
+
     elif estado == "vitoria":
         # Tela de Vitória
-        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 72)
-        fonte_media = pygame.font.Font(CAMINHO_FONTE, 40)
-        fonte_pequena = pygame.font.Font(CAMINHO_FONTE, 28)
+        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 36)
+        fonte_media = pygame.font.Font(CAMINHO_FONTE, 20)
         
         # Mensagem especial se completou a Fase do Caos
         if fase_caos_desbloqueada:
@@ -699,9 +884,6 @@ while rodando:
             texto_extra = None
             
         texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
-        texto_restart = fonte_pequena.render(
-            "Aperte ESPAÇO para voltar ao menu", True, (255, 255, 0)
-        )
 
         # overlay escuro
         overlay = pygame.Surface((LARGURA, ALTURA))
@@ -713,7 +895,11 @@ while rodando:
         if texto_extra:
             TELA.blit(texto_extra, (LARGURA//2 - texto_extra.get_width()//2, ALTURA//2 - 80))
         TELA.blit(texto_pontos, (LARGURA//2 - texto_pontos.get_width()//2, ALTURA//2 - 20))
-        TELA.blit(texto_restart, (LARGURA//2 - texto_restart.get_width()//2, ALTURA//2 + 40))
+        
+        # Desenhar botão voltar
+        mouse_pos = pygame.mouse.get_pos()
+        botao_voltar_menu.check_hover(mouse_pos)
+        botao_voltar_menu.draw(TELA)
 
     # Fade overlay global (para todas as transições)
     if fade_alpha > 0:
