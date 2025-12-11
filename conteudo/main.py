@@ -91,15 +91,15 @@ timer_transicao_caos = 0  # Timer para a tela de transição
 
 # Configuração de fases
 FASES = {
-    1: {"nome": "Fase 1: Iniciante", "duracao": 6, "robos": ["lento", "rapido"]},
+    1: {"nome": "Fase 1: Iniciante", "duracao": 600, "robos": ["lento", "rapido"]},
     2: {
         "nome": "Fase 2: Saltadores",
-        "duracao": 7,
+        "duracao": 700,
         "robos": ["lento", "saltador", "ziguezague"],
     },
     3: {
         "nome": "Fase 3: Caçadores",
-        "duracao": 9,
+        "duracao": 900,
         "robos": ["rapido", "cacador", "ciclico"],
     },
     4: {

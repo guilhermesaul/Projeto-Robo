@@ -277,7 +277,7 @@ class Boss(Robo):
         self.image = pygame.Surface((256, 256))
         self.image.fill((255, 255, 255))  # branco
         self.rect = self.image.get_rect(center=(x, y))
-        self.vida = 5  # vida do boss
+        self.vida = 250  # vida do boss
         self.vida_max = 250
         self.direcao = 1
         self.vel_horizontal = 4  # mais rápido
