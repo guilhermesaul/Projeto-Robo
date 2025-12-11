@@ -32,6 +32,9 @@ CAMINHO_MUSICA_BACKGROUND = os.path.join(
 CAMINHO_MUSICA_BOSS = os.path.join(
     os.path.dirname(__file__), "assets", "audios", "trilha-sonora-boss.mp3"
 )
+CAMINHO_MUSICA_FASE_SECRETA = os.path.join(
+    os.path.dirname(__file__), "assets", "audios", "trilha-sonora-fase-secreta.mp3"
+)
 SOM_LASER = pygame.mixer.Sound(CAMINHO_SOM_LASER)
 SOM_EXPLOSAO = pygame.mixer.Sound(CAMINHO_SOM_EXPLOSAO)
 SOM_LASER.set_volume(0.3)
@@ -77,6 +80,9 @@ opcao_menu = 0  # 0 = Iniciar, 1 = Sair
 opcao_pausa = 0  # 0 = Continuar, 1 = Sair
 cadencia_tiro = 0  # cooldown para rajada automática
 musica_atual = None  # controle da música tocando
+musica_fade_out = False  # flag para fade out em progresso
+musica_proxima = None  # próxima música a tocar após fade
+musica_volume = 0.5  # volume atual da música
 boss_ativo = False
 boss_spawnou = False
 inimigos_escapados = 0  # Contador para Easter Egg
@@ -85,15 +91,15 @@ timer_transicao_caos = 0  # Timer para a tela de transição
 
 # Configuração de fases
 FASES = {
-    1: {"nome": "Fase 1: Iniciante", "duracao": 600, "robos": ["lento", "rapido"]},
+    1: {"nome": "Fase 1: Iniciante", "duracao": 6, "robos": ["lento", "rapido"]},
     2: {
         "nome": "Fase 2: Saltadores",
-        "duracao": 700,
+        "duracao": 7,
         "robos": ["lento", "saltador", "ziguezague"],
     },
     3: {
         "nome": "Fase 3: Caçadores",
-        "duracao": 900,
+        "duracao": 9,
         "robos": ["rapido", "cacador", "ciclico"],
     },
     4: {
@@ -124,6 +130,9 @@ def resetar_jogo():
         tiros_inimigos, \
         powerups, \
         musica_atual, \
+        musica_fade_out, \
+        musica_proxima, \
+        musica_volume, \
         boss_ativo, \
         boss_spawnou, \
         inimigos_escapados, \
@@ -135,6 +144,9 @@ def resetar_jogo():
     boss_spawnou = False
     inimigos_escapados = 0
     fase_caos_desbloqueada = False
+    musica_fade_out = False
+    musica_proxima = None
+    musica_volume = 0.5
     todos_sprites.empty()
     inimigos.empty()
     tiros.empty()
@@ -397,7 +409,9 @@ while rodando:
                             tiros.empty()
                             tiros_inimigos.empty()
                             
-                            pygame.mixer.music.stop()
+                            # Iniciar fade out da música do boss e carregar próxima
+                            musica_fade_out = True
+                            musica_proxima = "fase_secreta"
                         else:
                             # Vitória normal
                             estado = "vitoria"
@@ -457,16 +471,39 @@ while rodando:
         todos_sprites.update()
         tiros_inimigos.update()  # atualiza tiros dos robôs também
         
-        # Rastrear inimigos que escapam (para Easter Egg)
-        if fase_atual < 4:  # Apenas nas fases 1-3
-            print(f"DEBUG: Verificando escapadas na fase {fase_atual}, total inimigos: {len(inimigos)}")
-            for inimigo in list(inimigos):
-                if not isinstance(inimigo, Boss):
-                    print(f"DEBUG: Inimigo em Y={inimigo.rect.top}, ALTURA={ALTURA}")
-                    if inimigo.rect.top > ALTURA:
-                        inimigos_escapados += 1
-                        print(f"DEBUG: Inimigo escapou! Total escapados: {inimigos_escapados}")
-                        inimigo.kill()  # Remove do grupo de sprites
+        # Rastrear inimigos que escapam (qualquer fase) e contar para o Easter Egg apenas nas fases 1-3
+        for inimigo in list(inimigos):
+            if inimigo.rect.top > ALTURA:
+                if fase_atual < 4 and not isinstance(inimigo, Boss):
+                    inimigos_escapados += 1
+                    print(f"DEBUG: Inimigo escapou! Total escapados: {inimigos_escapados}")
+                inimigo.kill()  # Remove do grupo de sprites
+    
+    # Sistema de fade de música
+    if musica_fade_out:
+        musica_volume -= 0.02  # Diminui gradualmente
+        if musica_volume <= 0:
+            musica_volume = 0
+            pygame.mixer.music.stop()
+            
+            # Carregar e tocar próxima música
+            if musica_proxima == "fase_secreta":
+                if os.path.exists(CAMINHO_MUSICA_FASE_SECRETA):
+                    pygame.mixer.music.load(CAMINHO_MUSICA_FASE_SECRETA)
+                    pygame.mixer.music.set_volume(0)
+                    pygame.mixer.music.play(-1)
+                    musica_atual = "fase_secreta"
+                    musica_fade_out = False
+                    musica_proxima = None
+                    # Agora fazer fade in
+        else:
+            pygame.mixer.music.set_volume(musica_volume)
+    elif musica_atual == "fase_secreta" and musica_volume < 0.5:
+        # Fade in da música da fase secreta
+        musica_volume += 0.02
+        if musica_volume > 0.5:
+            musica_volume = 0.5
+        pygame.mixer.music.set_volume(musica_volume)
 
     # desenhar
     TELA.fill((20, 20, 20))
@@ -555,7 +592,7 @@ while rodando:
                     # fundo
                     pygame.draw.rect(TELA, (100, 0, 0), (x, y, barra_largura, barra_altura))
                     # vida atual
-                    vida_atual = int((inimigo.vida / 250) * barra_largura)
+                    vida_atual = int((inimigo.vida / inimigo.vida_max) * barra_largura)
                     pygame.draw.rect(TELA, (255, 0, 0), (x, y, vida_atual, barra_altura))
                     # borda
                     pygame.draw.rect(TELA, (255, 255, 255), (x, y, barra_largura, barra_altura), 2)
@@ -672,7 +709,7 @@ while rodando:
         overlay.fill((0, 0, 0))
         TELA.blit(overlay, (0, 0))
         
-        TELA.blit(texto_vitoria, (LARGURA//2 - texto_vitoria.get_width()//2, ALTURA//2 - 140))
+        TELA.blit(texto_vitoria, (LARGURA//2 - texto_vitoria.get_width()//2, ALTURA//2 - 180))
         if texto_extra:
             TELA.blit(texto_extra, (LARGURA//2 - texto_extra.get_width()//2, ALTURA//2 - 80))
         TELA.blit(texto_pontos, (LARGURA//2 - texto_pontos.get_width()//2, ALTURA//2 - 20))

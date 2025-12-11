@@ -106,8 +106,7 @@ class RoboLento(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
-            self.kill()
+        # Saída pela base é tratada no loop principal
 
 
 # ROBO RAPIDO
@@ -126,8 +125,7 @@ class RoboRapido(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
-            self.kill()
+        # Saída pela base é tratada no loop principal
 
 
 # ROBO EXEMPLO — ZigueZague
@@ -151,8 +149,7 @@ class RoboZigueZague(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
-            self.kill()
+        # Saída pela base é tratada no loop principal
 
 
 # ROBO CICLICO
@@ -195,8 +192,7 @@ class RoboCiclico(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
-            self.kill()
+        # Saída pela base é tratada no loop principal
 
 
 # ROBO SALTADOR — faz "pulos" aleatórios
@@ -241,8 +237,8 @@ class RoboSaltador(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        # se sair por baixo ou bater no topo, mata
-        if self.rect.y > ALTURA or self.rect.y < -60:
+        # Mata apenas se sair muito acima da tela; saída inferior é tratada no loop principal
+        if self.rect.y < -60:
             self.kill()
 
 
@@ -271,7 +267,7 @@ class RoboCacador(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA + 80 or self.rect.y < -80:
+        if self.rect.y < -80:
             self.kill()
 # BOSS
 class Boss(Robo):
@@ -281,7 +277,7 @@ class Boss(Robo):
         self.image = pygame.Surface((256, 256))
         self.image.fill((255, 255, 255))  # branco
         self.rect = self.image.get_rect(center=(x, y))
-        self.vida = 10  # vida do boss
+        self.vida = 5  # vida do boss
         self.vida_max = 250
         self.direcao = 1
         self.vel_horizontal = 4  # mais rápido
