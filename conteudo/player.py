@@ -1,3 +1,4 @@
+import os
 import pygame
 from config import ALTURA, LARGURA
 from entidade import Entidade
@@ -58,8 +59,12 @@ class Tiro(Entidade):
     def __init__(self, x, y, dx=0):
         super().__init__(x, y, 10)
         self.dx = dx
-        self.image.fill((255, 255, 0))  # amarelo
-
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "tiroJogador.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM ).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, +90)
+        self.image = pygame.transform.scale(self.image, (60, 60))
+        self.rect = self.image.get_rect(center=(x, y))
+   
     def update(self):
         self.rect.x += self.dx
         self.rect.y -= self.velocidade
