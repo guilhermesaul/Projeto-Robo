@@ -7,7 +7,7 @@ class Jogador(Entidade):
     def __init__(self, x, y):
         super().__init__(x, y, 7)
         self.image.fill((0, 255, 0))  # verde
-        self.vida = 500
+        self.vida = 5
         self.velocidade_base = 7
         self.velocidade = self.velocidade_base
         self.velocidade_timer = 0
@@ -44,13 +44,12 @@ class Jogador(Entidade):
 
     def aplicar_powerup(self, tipo: str):
         if tipo == "velocidade":
-            self.velocidade_timer = 600
+            self.velocidade_timer += 600 
             self.velocidade = self.velocidade_base + 4
         elif tipo == "vida":
             self.vida = min(self.vida + 1, 9)
         elif tipo == "tiro_triplo":
-            # acumula tempo caso pegue outro enquanto ativo
-            self.tiro_triplo_timer = min(self.tiro_triplo_timer + 400, 800)
+            self.tiro_triplo_timer += 600
         else:
             raise ValueError(f"Power-up desconhecido: {tipo}")
 
