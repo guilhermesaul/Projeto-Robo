@@ -7,7 +7,7 @@ from config import ALTURA, FPS, LARGURA
 from player import Jogador, Tiro
 from powerup import PowerUp, gerar_tipo_powerup
 from robo import (
-    RoboCacador,
+    RoboCacador,  
     RoboCiclico,
     RoboLento,
     RoboRapido,

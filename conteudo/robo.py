@@ -76,7 +76,7 @@ class RoboLento(Robo):
         try:
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (128, 128))
+            self.image = pygame.transform.scale(self.image, (56,100 ))
         except:
             pass
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -101,7 +101,7 @@ class RoboRapido(Robo):
         try:
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (128, 128))
+            self.image = pygame.transform.scale(self.image, (64, 115))
         except:
             pass
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -125,7 +125,7 @@ class RoboZigueZague(Robo):
         try:
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (128, 128))
+            self.image = pygame.transform.scale(self.image, (50, 90))
         except:
             pass
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -154,7 +154,7 @@ class RoboCiclico(Robo):
         try:
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (128, 128))
+            self.image = pygame.transform.scale(self.image, (45, 90))
         except:
             pass
         self.rect = self.image.get_rect(center=(x, y))
@@ -182,7 +182,7 @@ class RoboSaltador(Robo):
             CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboSaltador.png")
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (128, 128))
+            self.image = pygame.transform.scale(self.image, (32, 64))
         except:
             self.image.fill((100, 100, 255))
         
@@ -219,7 +219,7 @@ class RoboCacador(Robo):
             CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboCacador.png")
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (128, 128))
+            self.image = pygame.transform.scale(self.image, (64, 128))
         except:
             self.image.fill((255, 165, 0))
 
