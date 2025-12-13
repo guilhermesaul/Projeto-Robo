@@ -1,7 +1,7 @@
 import os
 import random
 import pygame
- 
+
 from config import ALTURA, FPS, LARGURA
 from player import Jogador, Tiro
 from powerup import PowerUp, gerar_tipo_powerup
@@ -535,53 +535,23 @@ while rodando:
 
     # colisão tiro x robô
     if estado == "jogando":
-        # colisão tiro jogador x robo
-        colisao = pygame.sprite.groupcollide(inimigos, tiros, False, True)
-        if colisao:
-            for inimigo in colisao:
-                # Tratamento especial para o boss
+       # colisão tiro jogador x robo (hitbox ajustada)
+       for inimigo in inimigos:
+        for tiro in tiros:
+            hitbox_tiro = tiro.rect.inflate(-8, -8)
+
+            if hitbox_tiro.colliderect(inimigo.rect):
+                tiro.kill()
+
                 if isinstance(inimigo, Boss):
                     morreu, dropar_powerup = inimigo.receber_dano()
-                    
-                    # Dropar power-up se a flag retornar True
-                    if dropar_powerup:
-                        tipo = gerar_tipo_powerup()  # Escolhe aleatoriamente entre os 3 tipos
-                        powerup = PowerUp(inimigo.rect.centerx, inimigo.rect.centery, tipo)
-                        todos_sprites.add(powerup)
-                        powerups.add(powerup)
-                    
                     if morreu:
-                        # Boss morreu
                         explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
                         todos_sprites.add(explosao)
                         pontos += 1000
                         boss_ativo = False
                         SOM_EXPLOSAO.play()
-                        
-                        # EASTER EGG: Verificar se nenhum inimigo escapou
-                        print(f"DEBUG: Boss derrotado! Inimigos escapados: {inimigos_escapados}")
-                        if inimigos_escapados == 0:
-                            # Fase do Caos desbloqueada! Ir para tela de transição
-                            estado = "transicao_caos"
-                            timer_transicao_caos = 0
-                            fase_caos_desbloqueada = True
-                            
-                            # Limpar tela
-                            inimigos.empty()
-                            tiros.empty()
-                            tiros_inimigos.empty()
-                            
-                            # Iniciar fade out da música do boss e carregar próxima
-                            musica_fade_out = True
-                            musica_proxima = "fase_secreta"
-                        else:
-                            # Vitória normal
-                            estado = "vitoria"
-                            fade_alpha = 0
-                            fade_direcao = 1
-                            pygame.mixer.music.stop()
                 else:
-                    # Inimigos normais morrem em 1 tiro
                     explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
                     todos_sprites.add(explosao)
                     inimigo.kill()
