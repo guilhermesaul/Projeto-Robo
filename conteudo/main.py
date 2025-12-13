@@ -149,6 +149,13 @@ CAMINHO_BACKGROUND_CAOS = os.path.join(
 BACKGROUND_CAOS = pygame.image.load(CAMINHO_BACKGROUND_CAOS)
 BACKGROUND_CAOS = pygame.transform.scale(BACKGROUND_CAOS, (LARGURA, ALTURA))
 
+CAMINHO_BACKGROUND_MENU = os.path.join(
+    os.path.dirname(__file__), "assets", "images", "background-menu.png"
+)
+
+BACKGROUND_MENU = pygame.image.load(CAMINHO_BACKGROUND_MENU).convert()
+BACKGROUND_MENU = pygame.transform.scale(BACKGROUND_MENU, (LARGURA, ALTURA))
+
 pygame.display.set_caption("Robot Defense - Template")
 clock = pygame.time.Clock()
 
@@ -369,6 +376,7 @@ while rodando:
             rodando = False
 
         if estado == "menu":
+            TELA.blit(BACKGROUND_MENU, (0,0))
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
                 for btn in botoes_menu:
@@ -638,21 +646,21 @@ while rodando:
         pygame.mixer.music.set_volume(musica_volume)
 
     # desenhar
-    TELA.fill((20, 20, 20))
+    """ TELA.fill((20, 20, 20))
     
     # Background especial para Fase do Caos
     if fase_atual == 5:
         TELA.blit(BACKGROUND_CAOS, (0, 0))
     else:
-        TELA.blit(BACKGROUND, (0, 0))
+        TELA.blit(BACKGROUND, (0, 0))"""
 
     # Painel de pontos e vida
     font = pygame.font.SysFont(None, 30)
 
     if estado == "menu":
-        # Menu com botões - usando background do jogo
-        TELA.blit(BACKGROUND, (0, 0))
-        
+    # Menu com botões - usando background do jogo
+        TELA.blit(BACKGROUND_MENU, (0, 0))
+
         # Overlay escuro para melhor legibilidade do texto
         overlay = pygame.Surface((LARGURA, ALTURA))
         overlay.set_alpha(80)
@@ -677,6 +685,10 @@ while rodando:
             btn.draw(TELA)
     
     elif estado == "jogando":
+        if fase_atual == 5:
+          TELA.blit(BACKGROUND_CAOS, (0, 0))
+        else:
+            TELA.blit(BACKGROUND, (0, 0))
         # Desenhar sprites apenas quando jogando
         todos_sprites.draw(TELA)
         tiros_inimigos.draw(TELA)
@@ -757,6 +769,7 @@ while rodando:
             btn.draw(TELA)
 
     elif estado == "game_over":
+        TELA.blit(BACKGROUND_MENU, (0, 0))
         # Tela de Game Over
         fonte_grande = pygame.font.Font(CAMINHO_FONTE, 36)
         fonte_media = pygame.font.Font(CAMINHO_FONTE, 20)

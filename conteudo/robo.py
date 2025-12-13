@@ -125,7 +125,7 @@ class RoboZigueZague(Robo):
         try:
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (50, 90))
+            self.image = pygame.transform.scale(self.image, (64, 100))
         except:
             pass
         self.rect = self.image.get_rect(center=self.rect.center)
@@ -182,7 +182,7 @@ class RoboSaltador(Robo):
             CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboSaltador.png")
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
-            self.image = pygame.transform.scale(self.image, (32, 64))
+            self.image = pygame.transform.scale(self.image, (55, 110))
         except:
             self.image.fill((100, 100, 255))
         

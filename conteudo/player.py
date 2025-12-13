@@ -7,7 +7,12 @@ from entidade import Entidade
 class Jogador(Entidade):
     def __init__(self, x, y):
         super().__init__(x, y, 7)
-        self.image.fill((0, 255, 0))  # verde
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboJogador.png")
+        self.image = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(self.image, 90)
+        self.image = pygame.transform.scale(self.image, (110, 128)) 
+        self.rect = self.image.get_rect(center=(x, y))
+
         self.vida = 500
         self.velocidade_base = 7
         self.velocidade = self.velocidade_base
