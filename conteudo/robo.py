@@ -60,7 +60,7 @@ class TiroRobo(Entidade):
         CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "shot_exp1.png")
         imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
         self.image = pygame.transform.rotate(imagem_original, -90)
-        self.image = pygame.transform.scale(self.image, (96, 96))
+        self.image = pygame.transform.scale(self.image, (64, 64))
         self.rect = self.image.get_rect(center=(x, y))
 
     def update(self):

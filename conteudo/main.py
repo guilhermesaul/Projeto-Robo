@@ -1,8 +1,7 @@
 import os
 import random
-
 import pygame
-
+ 
 from config import ALTURA, FPS, LARGURA
 from player import Jogador, Tiro
 from powerup import PowerUp, gerar_tipo_powerup
