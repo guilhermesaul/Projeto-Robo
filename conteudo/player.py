@@ -3,15 +3,22 @@ import pygame
 from config import ALTURA, LARGURA
 from entidade import Entidade
 
+CAMINHO_NAVE_PLAYER = os.path.join(
+    os.path.dirname(__file__),
+    "assets",
+    "images",
+    "nave_player.png",
+)
+TAMANHO_NAVE_PLAYER = (100, 118)
+
 # JOGADOR
 class Jogador(Entidade):
     def __init__(self, x, y):
         super().__init__(x, y, 7)
-        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboJogador.png")
-        self.image = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-        self.image = pygame.transform.rotate(self.image, 90)
-        self.image = pygame.transform.scale(self.image, (110, 128)) 
+        sprite = pygame.image.load(CAMINHO_NAVE_PLAYER).convert_alpha()
+        self.image = pygame.transform.scale(sprite, TAMANHO_NAVE_PLAYER)
         self.rect = self.image.get_rect(center=(x, y))
+        self.hitbox = self.rect.inflate(-20, -20)
 
         self.vida = 500
         self.velocidade_base = 7
@@ -32,8 +39,9 @@ class Jogador(Entidade):
             self.mover(self.velocidade, 0)  # direita
 
         # limites de tela
-        self.rect.x = max(0, min(self.rect.x, LARGURA - 40))
-        self.rect.y = max(0, min(self.rect.y, ALTURA - 40))
+        self.rect.x = max(0, min(self.rect.x, LARGURA - self.rect.width))
+        self.rect.y = max(0, min(self.rect.y, ALTURA - self.rect.height))
+        self.hitbox.center = self.rect.center
 
         # timers de efeitos temporários
         if self.velocidade_timer > 0:
