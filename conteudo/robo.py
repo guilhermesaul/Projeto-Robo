@@ -288,7 +288,7 @@ class Boss(Robo):
         self.image = self.image_original.copy()
         self.rect = self.image.get_rect(center=(x, y))
         
-        self.max_vida = 500
+        self.max_vida = 250
         self.vida = self.max_vida
         self.rage_mode = False
         
@@ -393,5 +393,8 @@ class Boss(Robo):
         return self.vida <= 0, dropar
 
     def update(self):
+        if self.vida <= 0:
+          self.kill()
+          return
         self.atualizar_posicao()
         self.tentar_atirar()

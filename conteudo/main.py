@@ -662,13 +662,30 @@ while rodando:
                     if isinstance(inimigo, Boss):
                         morreu, dropar_powerup = inimigo.receber_dano()
                         if morreu:
-                            explosao = Explosao(
-                                inimigo.rect.centerx, inimigo.rect.centery
-                            )
+                            explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
                             todos_sprites.add(explosao)
+
                             pontos += 1000
                             boss_ativo = False
+                            fase_caos_desbloqueada = True
+
+                            # LIMPAR TELA
+                            inimigo.kill()
+                            inimigos.empty()
+                            tiros.empty()
+                            tiros_inimigos.empty()
+                            powerups.empty()
+
+                            # TRANSIÇÃO
+                            estado = "transicao_caos"
+                            timer_transicao_caos = 0
+
+                            # TROCAR MÚSICA (fade)
+                            musica_fade_out = True
+                            musica_proxima = "fase_secreta"
+
                             SOM_EXPLOSAO.play()
+
                     else:
                         explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
                         todos_sprites.add(explosao)

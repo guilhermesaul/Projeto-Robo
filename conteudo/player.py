@@ -20,7 +20,7 @@ class Jogador(Entidade):
         self.rect = self.image.get_rect(center=(x, y))
         self.hitbox = self.rect.inflate(-20, -20)
 
-        self.vida = 500
+        self.vida = 1000
         self.velocidade_base = 7
         self.velocidade = self.velocidade_base
         self.velocidade_timer = 0
@@ -64,7 +64,7 @@ class Jogador(Entidade):
             self.vida = min(self.vida + 1, 9)
         elif tipo == "tiro_triplo":
             # acumula tempo caso pegue outro enquanto ativo
-            self.tiro_triplo_timer = min(self.tiro_triplo_timer + 400, 800)
+            self.tiro_triplo_timer = min(self.tiro_triplo_timer + 600, 600)
         else:
             raise ValueError(f"Power-up desconhecido: {tipo}")
 
