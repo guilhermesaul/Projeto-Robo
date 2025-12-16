@@ -360,7 +360,7 @@ def spawnar_inimigos():
     # RoboCacador
     if "cacador" in robos_permitidos and temporizador_spawn % 120 == 0:
         robo = RoboCacador(
-            random.randint(40, LARGURA - 40), -60,jogador, grupo_tiros=tiros_inimigos
+            random.randint(40, LARGURA - 40), -60, jogador, grupo_tiros=tiros_inimigos
         )
         todos_sprites.add(robo)
         inimigos.add(robo)
@@ -552,7 +552,7 @@ while rodando:
             # Spawnar boss ao entrar na fase 4
             if fase_atual == 4 and not boss_spawnou:
                 boss = Boss(
-                    LARGURA // 2, -100, grupo_tiros=tiros_inimigos, jogador_alvo=jogador
+                LARGURA // 2, -100, grupo_tiros=tiros_inimigos
                 )
                 todos_sprites.add(boss)
                 inimigos.add(boss)
@@ -668,18 +668,24 @@ while rodando:
 
                             pontos += 1000
                             boss_ativo = False
-                            fase_caos_desbloqueada = True
-
-                            # LIMPAR TELA
                             inimigo.kill()
-                            inimigos.empty()
-                            tiros.empty()
-                            tiros_inimigos.empty()
-                            powerups.empty()
 
-                            # TRANSIÇÃO
-                            estado = "transicao_caos"
-                            timer_transicao_caos = 0
+                            # SÓ DESBLOQUEIA SE NENHUM INIMIGO ESCAPOU
+                            if inimigos_escapados == 0:
+                                fase_caos_desbloqueada = True
+                                estado = "transicao_caos"
+                                timer_transicao_caos = 0
+
+                                musica_fade_out = True
+                                musica_proxima = "fase_secreta"
+                            else:
+                                # Vitória normal (sem fase secreta)
+                                estado = "vitoria"
+                                fade_alpha = 0
+                                fade_direcao = 1
+                                tocar_som_vitoria()
+
+                            SOM_EXPLOSAO.play()
 
                             # TROCAR MÚSICA (fade)
                             musica_fade_out = True

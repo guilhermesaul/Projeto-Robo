@@ -311,134 +311,75 @@ class Explosao(pygame.sprite.Sprite):
         if self.vida_util <= 0:
          self.kill()
 
-
-# BOSS FINAL
+# BOSS
 class Boss(Robo):
-    def __init__(self, x, y, grupo_tiros=None, jogador_alvo=None):
-        super().__init__(x, y, velocidade=2, grupo_tiros=grupo_tiros)
-        
-        self.jogador_alvo = jogador_alvo
-        
-        try:
-            CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "boss.png")
-            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
-            self.image_original = pygame.transform.rotate(imagem_original, 180)
-            self.image_original = pygame.transform.scale(self.image_original, (260, 250))
-        except:
-            self.image_original = pygame.Surface((220, 160))
-            self.image_original.fill((80, 0, 80))
-            pygame.draw.rect(self.image_original, (150, 0, 150), (20, 20, 180, 120))
-        
-        self.image = self.image_original.copy()
+    def __init__(self, x, y, grupo_tiros=None):
+        super().__init__(x, y, velocidade=1, grupo_tiros=grupo_tiros)
+        # Boss muito maior - 256x256
+        self.image = pygame.Surface((256, 256))
+        self.image.fill((255, 255, 255))  # branco
         self.rect = self.image.get_rect(center=(x, y))
-        
-        self.max_vida = 250
-        self.vida = self.max_vida
-        self.rage_mode = False
-        
-        self.estado = "ENTRANDO"
-        self.y_base = 120
-        self.movendo_direita = True
-        self.hover_timer = 0
-        
-        self.dash_cooldown = 0
-        self.dash_delay = 300
-        self.velocidade_mergulho = 12
-        
-        self.tiro_timer = 60 
+        self.vida = 250  # vida do boss
+        self.vida_max = 250
+        self.direcao = 1
+        self.vel_horizontal = 4  # mais rápido
+        self.tiro_timer = 60  # intervalo inicial de tiro
+        self.vel_tiro = 10  # tiros mais rápidos
+        self.pos_y_alvo = ALTURA // 4  # fica no topo da tela
+        self.descendo = True
 
-    def verificar_rage_mode(self):
-        if self.vida <= (self.max_vida * 0.5) and not self.rage_mode:
-            self.rage_mode = True
-            tint = pygame.Surface(self.image.get_size(), pygame.SRCALPHA)
-            tint.fill((100, 0, 0, 100))
-            self.image_original.blit(tint, (0,0), special_flags=pygame.BLEND_ADD)
-            self.image = self.image_original.copy()
-       
     def atualizar_posicao(self):
-        self.verificar_rage_mode()
-        self.hover_timer += 0.1
-
-        if self.estado == "ENTRANDO":
-            self.rect.y += 3
-            if self.rect.centery >= self.y_base:
-                self.rect.centery = self.y_base
-                self.estado = "PATRULHANDO"
-
-        elif self.estado == "PATRULHANDO":
-            vel_atual = 5 if self.rage_mode else 2
-            
-            if self.movendo_direita:
-                self.rect.x += vel_atual
-                if self.rect.right >= LARGURA - 10:
-                    self.movendo_direita = False
+        # desce até posição alvo, depois fica se movendo lateralmente
+        if self.descendo:
+            if self.rect.centery < self.pos_y_alvo:
+                self.rect.y += self.velocidade * 2
             else:
-                self.rect.x -= vel_atual
-                if self.rect.left <= 10:
-                    self.movendo_direita = True
-            
-            flutuacao = math.sin(self.hover_timer) * 10
-            self.rect.centery = self.y_base + flutuacao
-
-            if self.rage_mode:
-                self.dash_cooldown += 1
-                if self.dash_cooldown > self.dash_delay:
-                    self.estado = "MERGULHANDO"
-                    self.dash_cooldown = 0
-                    if self.jogador_alvo:
-                        if self.jogador_alvo.rect.centerx > self.rect.centerx:
-                             self.movendo_direita = True
-                        else:
-                             self.movendo_direita = False
-
-        elif self.estado == "MERGULHANDO":
-            self.rect.y += self.velocidade_mergulho
-            self.rect.x += random.choice([-2, 2]) 
-            
-            if self.rect.bottom >= ALTURA - 50:
-                self.estado = "RETORNANDO"
-
-        elif self.estado == "RETORNANDO":
-            self.rect.y -= (self.velocidade_mergulho - 4)
-            if self.rect.centery <= self.y_base:
-                self.rect.centery = self.y_base
-                self.estado = "PATRULHANDO"
-                self.dash_delay = random.randint(180, 400)
-
+                self.descendo = False
+        else:
+            # movimento lateral
+            self.rect.x += self.direcao * self.vel_horizontal
+            # Mantém o Boss sempre dentro da tela
+            if self.rect.left <= 0:
+                self.rect.left = 0
+                self.direcao *= -1
+            elif self.rect.right >= LARGURA:
+                self.rect.right = LARGURA
+                self.direcao *= -1
+   
     def tentar_atirar(self):
-        if self.grupo_tiros is None or self.estado == "ENTRANDO":
+        # Boss atira 5 tiros espalhados
+        if self.grupo_tiros is None:
             return
-
+       
         self.tiro_timer -= 1
-        
-        cooldown_tiro = 35 if self.rage_mode else 55
-        
         if self.tiro_timer <= 0:
-            cx, cy = self.rect.centerx, self.rect.bottom - 20
-            vel_tiro = 7 if not self.rage_mode else 9
-            
-            tiro_mid = TiroBoss(cx, cy, vy=vel_tiro, vx=0)
-            
-            tiro_left = TiroBoss(cx - 20, cy - 10, vy=vel_tiro * 0.9, vx=-3)
-            tiro_right = TiroBoss(cx + 20, cy - 10, vy=vel_tiro * 0.9, vx=3)
-            
-            self.grupo_tiros.add(tiro_mid, tiro_left, tiro_right)
-            
-            if self.rage_mode:
-                tiro_ext_left = TiroBoss(cx - 40, cy - 20, vy=vel_tiro * 0.8, vx=-5)
-                tiro_ext_right = TiroBoss(cx + 40, cy - 20, vy=vel_tiro * 0.8, vx=5)
-                self.grupo_tiros.add(tiro_ext_left, tiro_ext_right)
-
-            self.tiro_timer = cooldown_tiro
-
-    def receber_dano(self):
-        self.vida -= 10
-        dropar = (self.vida % 80 == 0)
-        return self.vida <= 0, dropar
+            # 5 tiros espalhados
+            for offset in [-60, -30, 0, 30, 60]:
+                tiro = TiroBoss(self.rect.centerx + offset, self.rect.bottom, self.vel_tiro)
+                self.grupo_tiros.add(tiro)
+           
+            self.tiro_timer = random.randint(60, 120)
 
     def update(self):
-        if self.vida <= 0:
-          self.kill()
-          return
         self.atualizar_posicao()
         self.tentar_atirar()
+       
+    def receber_dano(self):
+        self.vida -= 1
+        # efeito visual de dano (pisca)
+        if self.vida % 2 == 0:
+            self.image.fill((255, 200, 200))
+        else:
+            self.image.fill((255, 255, 255))
+       
+        # 5% chance de dropar power-up ao receber dano
+        deve_dropar_powerup = random.random() < 0.05
+       
+        if self.vida <= 0:
+            self.kill()
+            return True, deve_dropar_powerup  # (morreu, dropar_powerup)
+       
+        return False, deve_dropar_powerup  # (ainda vivo, dropar_powerup)
+         
+
+
