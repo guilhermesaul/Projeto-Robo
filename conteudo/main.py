@@ -360,7 +360,7 @@ def spawnar_inimigos():
     # RoboCacador
     if "cacador" in robos_permitidos and temporizador_spawn % 120 == 0:
         robo = RoboCacador(
-            random.randint(40, LARGURA - 40), -60, jogador, grupo_tiros=tiros_inimigos
+            random.randint(40, LARGURA - 40), -60,jogador, grupo_tiros=tiros_inimigos
         )
         todos_sprites.add(robo)
         inimigos.add(robo)

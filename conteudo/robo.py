@@ -210,43 +210,49 @@ class RoboSaltador(Robo):
 
         self.rect = self.image.get_rect(center=(x, y))
 
-        self.teleport_cooldown = random.randint(60, 120)
-        self.teleport_timer = 0
+        self.velocidade_vertical = self.velocidade
+        self.gravidade = 0.3
+        self.posicao_y = float(y)
+        self.tempo_teleporte = 0
+        self.intervalo_teleporte_minimo = 50
+        self.intervalo_teleporte_maximo = 140
+        self.proximo_teleporte = random.randint(self.intervalo_teleporte_minimo, self.intervalo_teleporte_maximo)
+        self.flash_duracao = 10
+        self.flash_timer = 0
 
-        self.y_max = ALTURA * 0.6
 
     def atualizar_posicao(self):
-        self.rect.y += self.velocidade
-        self.teleport_timer += 1
+        # contador para teleporte
+        self.tempo_teleporte += 1
+        if self.tempo_teleporte >= self.proximo_teleporte:
+            novo_x = random.randint(40, LARGURA - 40)
+            novo_y = random.randint(0, ALTURA // 2)
+            self.rect.x = novo_x
+            self.posicao_y = float(novo_y)
+            self.rect.y = novo_y
+            self.tempo_teleporte = 0
+            self.proximo_teleporte = random.randint(self.intervalo_teleporte_minimo, self.intervalo_teleporte_maximo)
+            self.flash_timer = self.flash_duracao
 
-        if self.teleport_timer >= self.teleport_cooldown:
-            self.teleportar()
-            self.teleport_timer = 0
-            self.teleport_cooldown = random.randint(60, 120)
-
-    def teleportar(self):
-        salto = random.randint(40, 80)
-        novo_y = self.rect.y + salto
-
-        if novo_y > self.y_max:
-            novo_y = self.y_max
-
-        self.rect.y = novo_y
-        self.rect.x = random.randint(20, LARGURA - self.rect.width - 20)
+        # atualização da posição vertical (descida leve)
+        self.velocidade_vertical += self.gravidade
+        if self.velocidade_vertical > 4:
+            self.velocidade_vertical = 4
+        self.posicao_y += self.velocidade_vertical
+        self.rect.y = int(self.posicao_y)
 
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-
-        if self.rect.top > ALTURA + 80:
+        # Mata apenas se sair muito acima da tela; saída inferior é tratada no loop principal
+        if self.rect.y < -60:
             self.kill()
 
 # ROBO CAÇADOR
 class RoboCacador(Robo):
     def __init__(self, x, y, jogador, grupo_tiros=None):
         super().__init__(x, y, velocidade=2, grupo_tiros=grupo_tiros)
-        self.jogador = jogador
-
+        
         try:
             CAMINHO_IMAGEM = os.path.join(
                 os.path.dirname(__file__),
@@ -260,37 +266,26 @@ class RoboCacador(Robo):
             self.image.fill((255, 165, 0))
 
         self.rect = self.image.get_rect(center=(x, y))
+        self.jogador = jogador
 
-        # velocidade horizontal do caçador
-        self.vel_x = 0
-        self.vel_max = 3
 
     def atualizar_posicao(self):
-        # desce
-        self.rect.y += self.velocidade
-
-        if not self.jogador:
-            return
-
-        # distância até o jogador
-        dx = self.jogador.rect.centerx - self.rect.centerx
-
-        # segue suavemente
-        if abs(dx) > 5:
-            self.vel_x = max(-self.vel_max, min(dx * 0.05, self.vel_max))
+        diferenca_x = self.jogador.rect.centerx - self.rect.centerx
+        diferenca_y = self.jogador.rect.centery - self.rect.centery
+        distancia = math.hypot(diferenca_x, diferenca_y)
+        if distancia > 0:
+            normal_x = diferenca_x / distancia
+            normal_y = diferenca_y / distancia
+            self.rect.x += normal_x * self.velocidade * 2
+            self.rect.y += normal_y * self.velocidade
         else:
-            self.vel_x = 0
-
-        self.rect.x += self.vel_x
+            self.rect.y += self.velocidade
 
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-
-        if self.rect.top > ALTURA + 60:
+        if self.rect.top > ALTURA:
             self.kill()
-
-
 # EXPLOSAO
 class Explosao(pygame.sprite.Sprite):
     def __init__(self, x, y):
