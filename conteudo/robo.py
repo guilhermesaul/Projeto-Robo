@@ -315,10 +315,26 @@ class Explosao(pygame.sprite.Sprite):
 class Boss(Robo):
     def __init__(self, x, y, grupo_tiros=None):
         super().__init__(x, y, velocidade=1, grupo_tiros=grupo_tiros)
-        # Boss muito maior - 256x256
-        self.image = pygame.Surface((256, 256))
-        self.image.fill((255, 255, 255))  # branco
+        self.piscando = 0
+        try:
+            CAMINHO_IMAGEM = os.path.join(
+                os.path.dirname(__file__),
+                "assets",
+                "images",
+                "boss.png"
+            )
+            imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+
+            self.image_original = pygame.transform.rotate(imagem_original, 180)
+            self.image_original = pygame.transform.scale(self.image_original, (250, 250))
+
+        except:
+            self.image_original = pygame.Surface((250, 250))
+            self.image_original.fill((80, 0, 80))
+
+        self.image = self.image_original.copy()
         self.rect = self.image.get_rect(center=(x, y))
+
         self.vida = 250  # vida do boss
         self.vida_max = 250
         self.direcao = 1
@@ -363,23 +379,25 @@ class Boss(Robo):
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
+
+        if self.piscando > 0:
+            self.piscando -= 1
+            self.image = self.image_original
+            self.image.set_alpha(160)  # mais transparente (efeito dano)
+        else:
+            self.image = self.image_original
+            self.image.set_alpha(255)  # normal
+
        
     def receber_dano(self):
         self.vida -= 1
-        # efeito visual de dano (pisca)
-        if self.vida % 2 == 0:
-            self.image.fill((255, 200, 200))
-        else:
-            self.image.fill((255, 255, 255))
-       
-        # 5% chance de dropar power-up ao receber dano
+        self.piscando = 8  # quantidade de frames do efeito
+
         deve_dropar_powerup = random.random() < 0.05
-       
+
         if self.vida <= 0:
             self.kill()
-            return True, deve_dropar_powerup  # (morreu, dropar_powerup)
-       
-        return False, deve_dropar_powerup  # (ainda vivo, dropar_powerup)
-         
+            return True, deve_dropar_powerup
 
+        return False, deve_dropar_powerup
 

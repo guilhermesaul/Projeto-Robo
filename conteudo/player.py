@@ -19,13 +19,12 @@ class Jogador(Entidade):
         self.image = pygame.transform.scale(sprite, TAMANHO_NAVE_PLAYER)
         self.rect = self.image.get_rect(center=(x, y))
         self.hitbox = self.rect.inflate(-20, -20)
-
-        self.vida = 100
+        self.vida = 10
         self.velocidade_base = 10
         self.velocidade = self.velocidade_base
         self.velocidade_timer = 600
         self.tiro_triplo_timer = 0
-
+        
     def update(self):
         keys = pygame.key.get_pressed()
 
