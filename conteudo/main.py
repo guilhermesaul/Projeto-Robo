@@ -20,6 +20,7 @@ from robo import (
 pygame.init()
 pygame.mixer.init()
 
+
 # Cores para o menu
 COR_FUNDO_MENU = (20, 15, 30)  # Roxo bem escuro
 COR_TITULO_1 = (255, 160, 50)  # Laranja

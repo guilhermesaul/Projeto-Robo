@@ -194,7 +194,7 @@ class RoboCiclico(Robo):
 # ROBO SALTADOR
 class RoboSaltador(Robo):
     def __init__(self, x, y, grupo_tiros=None):
-        super().__init__(x, y, velocidade=2.5, grupo_tiros=grupo_tiros)
+        super().__init__(x, y, velocidade=2, grupo_tiros=grupo_tiros)
 
         try:
             CAMINHO_IMAGEM = os.path.join(
@@ -210,43 +210,29 @@ class RoboSaltador(Robo):
 
         self.rect = self.image.get_rect(center=(x, y))
 
-        # Estados do salto
-        self.estado = "descendo"
-        self.vel_y = 0
+        self.teleport_cooldown = random.randint(60, 120)
+        self.teleport_timer = 0
 
-        # Ajustes finos do salto
-        self.forca_pulo = -9
-        self.gravidade = 0.6
-        self.vel_max_queda = 8
-
-        # Controle de tempo
-        self.delay_pulo = random.randint(30, 80)
-        self.timer = 0
+        self.y_max = ALTURA * 0.6
 
     def atualizar_posicao(self):
-        if self.estado == "descendo":
-            self.rect.y += self.velocidade
-            self.timer += 1
+        self.rect.y += self.velocidade
+        self.teleport_timer += 1
 
-            if self.timer >= self.delay_pulo:
-                self.estado = "subindo"
-                self.vel_y = self.forca_pulo
-                self.timer = 0
-                self.delay_pulo = random.randint(40, 90)
+        if self.teleport_timer >= self.teleport_cooldown:
+            self.teleportar()
+            self.teleport_timer = 0
+            self.teleport_cooldown = random.randint(60, 120)
 
-        elif self.estado == "subindo":
-            self.rect.y += self.vel_y
-            self.vel_y += self.gravidade
+    def teleportar(self):
+        salto = random.randint(40, 80)
+        novo_y = self.rect.y + salto
 
-            if self.vel_y >= 0:
-                self.estado = "caindo"
+        if novo_y > self.y_max:
+            novo_y = self.y_max
 
-        elif self.estado == "caindo":
-            self.rect.y += self.vel_y
-            self.vel_y = min(self.vel_y + self.gravidade, self.vel_max_queda)
-
-            if self.vel_y >= self.vel_max_queda:
-                self.estado = "descendo"
+        self.rect.y = novo_y
+        self.rect.x = random.randint(20, LARGURA - self.rect.width - 20)
 
     def update(self):
         self.atualizar_posicao()
