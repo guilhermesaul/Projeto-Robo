@@ -718,7 +718,7 @@ while rodando:
                     acionar_game_over()
                     break  # sair do loop de tiros (já morreu)
 
-    # colisão robô x jogador
+    # colisão robô x jogador  
     if estado == "jogando":
         alvo_jogador = retangulo_jogador()
         inimigos_colididos = [
@@ -773,15 +773,6 @@ while rodando:
         if musica_volume > 0.5:
             musica_volume = 0.5
         pygame.mixer.music.set_volume(musica_volume)
-
-    # desenhar
-    """ TELA.fill((20, 20, 20))
-
-    # Background especial para Fase do Caos
-    if fase_atual == 5:
-        TELA.blit(BACKGROUND_CAOS, (0, 0))
-    else:
-        TELA.blit(BACKGROUND, (0, 0))"""
 
     # Painel de pontos e vida
     font = pygame.font.SysFont(None, 30)
@@ -981,7 +972,7 @@ while rodando:
 
     elif estado == "opcoes":
         # Menu de opções
-        TELA.blit(BACKGROUND, (0, 0))
+        TELA.blit(BACKGROUND_MENU, (0, 0))
 
         # Overlay escuro
         overlay = pygame.Surface((LARGURA, ALTURA))

@@ -10,8 +10,10 @@ class TiroBoss(pygame.sprite.Sprite):
     def __init__(self, x, y, vy, vx=0):
         super().__init__()
         # Tiro do Boss maior: 16x24
-        self.image = pygame.Surface((16, 24))
-        self.image.fill((255, 50, 50))
+        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "shot_exp1.png")
+        imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
+        self.image = pygame.transform.rotate(imagem_original, -90)
+        self.image = pygame.transform.scale(self.image, (74, 74))
         self.rect = self.image.get_rect(center=(x, y))
         self.vy = vy
         self.vx = vx
@@ -149,96 +151,157 @@ class RoboZigueZague(Robo):
 # ROBO CICLICO
 class RoboCiclico(Robo):
     def __init__(self, x, y, grupo_tiros=None):
-        super().__init__(x, y, velocidade = 1, grupo_tiros=grupo_tiros)
-        CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__),"assets", "images", "roboCiclico.png")
+        super().__init__(x, y, velocidade=0, grupo_tiros=grupo_tiros)
+
+        CAMINHO_IMAGEM = os.path.join(
+            os.path.dirname(__file__),
+            "assets", "images", "roboCiclico.png"
+        )
+
         try:
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
             self.image = pygame.transform.scale(self.image, (45, 90))
         except:
-            pass
+            self.image = pygame.Surface((45, 90))
+            self.image.fill((200, 50, 200))
+
         self.rect = self.image.get_rect(center=(x, y))
+
+        # Dados do movimento circular
         self.centro_x = x
+        self.centro_y = y
+        self.raio = 60
         self.angulo = 0
+        self.vel_angular = 0.05
+        self.vel_descida = 1
 
     def atualizar_posicao(self):
-        self.rect.y += self.velocidade
-        self.angulo += 0.1
-        self.rect.x = self.centro_x + math.sin(self.angulo) * 60
+        self.angulo += self.vel_angular
+        self.centro_y += self.vel_descida
+
+        self.rect.x = self.centro_x + math.cos(self.angulo) * self.raio
+        self.rect.y = self.centro_y + math.sin(self.angulo) * self.raio
 
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
-            self.kill()
-        # Saída pela base é tratada no loop principal
 
+        # remove quando sair da tela
+        if self.rect.top > ALTURA + 60:
+            self.kill()
 
 # ROBO SALTADOR
 class RoboSaltador(Robo):
     def __init__(self, x, y, grupo_tiros=None):
-        super().__init__(x, y, velocidade=4, grupo_tiros=grupo_tiros)
+        super().__init__(x, y, velocidade=2.5, grupo_tiros=grupo_tiros)
+
         try:
-            CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboSaltador.png")
+            CAMINHO_IMAGEM = os.path.join(
+                os.path.dirname(__file__),
+                "assets", "images", "roboSaltador.png"
+            )
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
             self.image = pygame.transform.scale(self.image, (55, 110))
         except:
+            self.image = pygame.Surface((55, 110))
             self.image.fill((100, 100, 255))
-        
+
         self.rect = self.image.get_rect(center=(x, y))
-        self.estado = "caindo"
-        self.timer_salto = 0
+
+        # Estados do salto
+        self.estado = "descendo"
+        self.vel_y = 0
+
+        # Ajustes finos do salto
+        self.forca_pulo = -9
+        self.gravidade = 0.6
+        self.vel_max_queda = 8
+
+        # Controle de tempo
+        self.delay_pulo = random.randint(30, 80)
+        self.timer = 0
 
     def atualizar_posicao(self):
-        if self.estado == "caindo":
+        if self.estado == "descendo":
             self.rect.y += self.velocidade
-            if random.randint(0, 100) < 2:
-                self.estado = "parando"
-                self.timer_salto = 40
-        elif self.estado == "parando":
-            self.timer_salto -= 1
-            if self.timer_salto <= 0:
+            self.timer += 1
+
+            if self.timer >= self.delay_pulo:
+                self.estado = "subindo"
+                self.vel_y = self.forca_pulo
+                self.timer = 0
+                self.delay_pulo = random.randint(40, 90)
+
+        elif self.estado == "subindo":
+            self.rect.y += self.vel_y
+            self.vel_y += self.gravidade
+
+            if self.vel_y >= 0:
                 self.estado = "caindo"
+
+        elif self.estado == "caindo":
+            self.rect.y += self.vel_y
+            self.vel_y = min(self.vel_y + self.gravidade, self.vel_max_queda)
+
+            if self.vel_y >= self.vel_max_queda:
+                self.estado = "descendo"
 
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
-        # se sair por baixo ou bater no topo, mata
-         if self.rect.y > ALTURA or self.rect.y < -60:
-            self.kill()
 
+        if self.rect.top > ALTURA + 80:
+            self.kill()
 
 # ROBO CAÇADOR
 class RoboCacador(Robo):
     def __init__(self, x, y, jogador, grupo_tiros=None):
-        super().__init__(x, y, velocidade=2.5, grupo_tiros=grupo_tiros)
+        super().__init__(x, y, velocidade=2, grupo_tiros=grupo_tiros)
         self.jogador = jogador
+
         try:
-            CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "roboCacador.png")
+            CAMINHO_IMAGEM = os.path.join(
+                os.path.dirname(__file__),
+                "assets", "images", "roboCacador.png"
+            )
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image = pygame.transform.rotate(imagem_original, -90)
             self.image = pygame.transform.scale(self.image, (64, 128))
         except:
+            self.image = pygame.Surface((64, 128))
             self.image.fill((255, 165, 0))
 
         self.rect = self.image.get_rect(center=(x, y))
 
+        # velocidade horizontal do caçador
+        self.vel_x = 0
+        self.vel_max = 3
+
     def atualizar_posicao(self):
+        # desce
         self.rect.y += self.velocidade
-        
-        if self.jogador:
-            dx = self.jogador.rect.centerx - self.rect.centerx
-            if dx > 0:
-                self.rect.x += 1
-            elif dx < 0:
-                self.rect.x -= 1
+
+        if not self.jogador:
+            return
+
+        # distância até o jogador
+        dx = self.jogador.rect.centerx - self.rect.centerx
+
+        # segue suavemente
+        if abs(dx) > 5:
+            self.vel_x = max(-self.vel_max, min(dx * 0.05, self.vel_max))
+        else:
+            self.vel_x = 0
+
+        self.rect.x += self.vel_x
 
     def update(self):
         self.atualizar_posicao()
         self.tentar_atirar()
-        if self.rect.y > ALTURA:
+
+        if self.rect.top > ALTURA + 60:
             self.kill()
 
 
@@ -265,8 +328,8 @@ class Explosao(pygame.sprite.Sprite):
         pygame.draw.circle(self.image, cor, (tamanho_atual, tamanho_atual), tamanho_atual)
         
         if self.vida_util <= 0:
-         if self.rect.y > ALTURA + 80 or self.rect.y < -80:
-            self.kill()
+         self.kill()
+
 
 # BOSS FINAL
 class Boss(Robo):
@@ -279,7 +342,7 @@ class Boss(Robo):
             CAMINHO_IMAGEM = os.path.join(os.path.dirname(__file__), "assets", "images", "boss.png")
             imagem_original = pygame.image.load(CAMINHO_IMAGEM).convert_alpha()
             self.image_original = pygame.transform.rotate(imagem_original, 180)
-            self.image_original = pygame.transform.scale(self.image_original, (250, 250))
+            self.image_original = pygame.transform.scale(self.image_original, (260, 250))
         except:
             self.image_original = pygame.Surface((220, 160))
             self.image_original.fill((80, 0, 80))

@@ -20,10 +20,10 @@ class Jogador(Entidade):
         self.rect = self.image.get_rect(center=(x, y))
         self.hitbox = self.rect.inflate(-20, -20)
 
-        self.vida = 1000
-        self.velocidade_base = 7
+        self.vida = 100
+        self.velocidade_base = 10
         self.velocidade = self.velocidade_base
-        self.velocidade_timer = 0
+        self.velocidade_timer = 600
         self.tiro_triplo_timer = 0
 
     def update(self):
