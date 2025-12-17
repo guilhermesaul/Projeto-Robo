@@ -286,30 +286,52 @@ class RoboCacador(Robo):
         self.tentar_atirar()
         if self.rect.top > ALTURA:
             self.kill()
-# EXPLOSAO
+
+
+# Explosao
 class Explosao(pygame.sprite.Sprite):
     def __init__(self, x, y):
         super().__init__()
-        self.tamanho = 10
-        self.image = pygame.Surface((self.tamanho * 2, self.tamanho * 2), pygame.SRCALPHA)
+
+        self.frames = []
+
+        base_path = os.path.join(
+            os.path.dirname(__file__),
+            "assets", "images"
+        )
+
+        print(os.listdir(base_path))
+
+
+        for i in range(1, 7):
+            imagem = pygame.image.load(
+                os.path.join(base_path, f"explosao_{i}.png")
+            ).convert_alpha()
+
+            #tamanho final da explosão (controle total)
+            imagem = pygame.transform.smoothscale(imagem, (80, 80))
+
+            self.frames.append(imagem)
+
+        self.frame_atual = 0
+        self.image = self.frames[self.frame_atual]
         self.rect = self.image.get_rect(center=(x, y))
-        self.vida_util = 20
-        
+
+        self.tempo_animacao = 60  # ms
+        self.ultimo_update = pygame.time.get_ticks()
+
     def update(self):
-        self.vida_util -= 1
-        self.tamanho += 2
-        
-        tamanho_atual = int(self.tamanho)
-        self.image = pygame.Surface((tamanho_atual * 2, tamanho_atual * 2), pygame.SRCALPHA)
-        self.rect = self.image.get_rect(center=self.rect.center)
-        
-        alpha = max(0, min(255, int(255 * (self.vida_util / 20))))
-        cor = (255, random.randint(0, 150), 0, alpha)
-        
-        pygame.draw.circle(self.image, cor, (tamanho_atual, tamanho_atual), tamanho_atual)
-        
-        if self.vida_util <= 0:
-         self.kill()
+        agora = pygame.time.get_ticks()
+
+        if agora - self.ultimo_update >= self.tempo_animacao:
+            self.ultimo_update = agora
+            self.frame_atual += 1
+
+            if self.frame_atual >= len(self.frames):
+                self.kill()
+            else:
+                self.image = self.frames[self.frame_atual]
+
 
 # BOSS
 class Boss(Robo):
