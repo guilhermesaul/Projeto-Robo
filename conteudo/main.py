@@ -169,6 +169,9 @@ BACKGROUND_CAOS = pygame.transform.scale(BACKGROUND_CAOS, (LARGURA, ALTURA))
 CAMINHO_BACKGROUND_MENU = os.path.join(
     os.path.dirname(__file__), "assets", "images", "background-menu.png"
 )
+CAMINHO_MUSICA_MENU = os.path.join(
+    os.path.dirname(__file__), "assets", "audios", "menu.mp3"
+)
 
 BACKGROUND_MENU = pygame.image.load(CAMINHO_BACKGROUND_MENU).convert()
 BACKGROUND_MENU = pygame.transform.scale(BACKGROUND_MENU, (LARGURA, ALTURA))
@@ -432,8 +435,21 @@ botao_vitoria_menu = Button(
 )
 
 rodando = True
+musica_menu_tocando = False
+
 while rodando:
     clock.tick(FPS)
+
+    if estado in ["menu", "opcoes", "pausado"]:
+        if not musica_menu_tocando and os.path.exists(CAMINHO_MUSICA_MENU):
+            pygame.mixer.music.stop()
+            pygame.mixer.music.load(CAMINHO_MUSICA_MENU)
+            pygame.mixer.music.set_volume(sliders[0].value)
+            pygame.mixer.music.play(-1)
+            musica_menu_tocando = True
+    else:
+        musica_menu_tocando = False
+
 
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
