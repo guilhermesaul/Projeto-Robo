@@ -1,3 +1,8 @@
+"""
+Jogo Robot Defense - Versão POO
+Demonstra: Classes, Herança, Polimorfismo, Encapsulamento
+Sprites e Grupos do Pygame, Detecção de Colisão, Loop de Jogo
+"""
 import math
 import os
 import random
@@ -5,7 +10,7 @@ import random
 import pygame
 from config import ALTURA, FPS, LARGURA
 from player import Jogador, Tiro
-from powerup import PowerUp, gerar_tipo_powerup
+from powerup import PowerUp, FabricaPowerUp, gerar_tipo_powerup
 from robo import (
     Boss,
     Explosao,
@@ -16,112 +21,27 @@ from robo import (
     RoboSaltador,
     RoboZigueZague,
 )
+from audio import GerenciadorAudio
+from managers import GerenciadorFases, GerenciadorMenu, Botao, ControleDeslizante
 
 pygame.init()
 pygame.mixer.init()
 
 
-# Cores para o menu
-COR_FUNDO_MENU = (20, 15, 30)  # Roxo bem escuro
-COR_TITULO_1 = (255, 160, 50)  # Laranja
-COR_TITULO_2 = (50, 150, 255)  # Azul
-COR_BOTAO_BG = (40, 40, 70)  # Azul acinzentado escuro
-COR_BOTAO_HOVER = (60, 60, 100)  # Azul um pouco mais claro
-COR_TEXTO = (255, 255, 255)  # Branco
-COR_BORDA_HOVER = (255, 140, 0)  # Laranja para a borda
+# Cores para o menu (constantes)
+COR_FUNDO_MENU = (20, 15, 30)
+COR_TITULO_1 = (255, 160, 50)
+COR_TITULO_2 = (50, 150, 255)
+COR_BOTAO_BG = (40, 40, 70)
+COR_BOTAO_HOVER = (60, 60, 100)
+COR_TEXTO = (255, 255, 255)
+COR_BORDA_HOVER = (255, 140, 0)
 
 
-# Classe do Botão
-class Button:
-    def __init__(self, text, x, y, width, height, fonte):
-        self.text = text
-        self.rect = pygame.Rect(x, y, width, height)
-        self.color = COR_BOTAO_BG
-        self.hovered = False
-        self.fonte = fonte
+# Inicialização do gerenciador de áudio
+gerenciador_audio = GerenciadorAudio(os.path.dirname(__file__))
 
-    def draw(self, surface):
-        # Muda cor e borda se o mouse estiver em cima
-        if self.hovered:
-            pygame.draw.rect(surface, COR_BOTAO_HOVER, self.rect, border_radius=8)
-            pygame.draw.rect(surface, COR_BORDA_HOVER, self.rect, 3, border_radius=8)
-        else:
-            pygame.draw.rect(surface, COR_BOTAO_BG, self.rect, border_radius=8)
-            pygame.draw.rect(surface, (20, 20, 40), self.rect, 3, border_radius=8)
-
-        # Renderiza o texto centralizado no botão
-        text_surf = self.fonte.render(self.text, True, COR_TEXTO)
-        text_rect = text_surf.get_rect(center=self.rect.center)
-        surface.blit(text_surf, text_rect)
-
-    def check_hover(self, mouse_pos):
-        self.hovered = self.rect.collidepoint(mouse_pos)
-        return self.hovered
-
-    def is_clicked(self, mouse_pos):
-        return self.rect.collidepoint(mouse_pos)
-
-
-# Classe do Slider para controle de volume
-class Slider:
-    def __init__(self, x, y, width, height, label, fonte):
-        self.center_x = x  # Centro horizontal
-        self.rect = pygame.Rect(
-            x - width // 2, y, width, height
-        )  # Rect ajustado para estar centralizado
-        self.label = label
-        self.fonte = fonte
-        self.value = 1.0  # Valor entre 0 e 1 (100% por padrão)
-        self.dragging = False
-
-    def draw(self, surface):
-        # Desenhar label acima do slider, centralizado
-        label_surf = self.fonte.render(self.label, True, COR_TEXTO)
-        label_x = self.center_x - label_surf.get_width() // 2
-        surface.blit(label_surf, (label_x, self.rect.y - 50))
-
-        # Desenhar barra de fundo
-        pygame.draw.rect(surface, (50, 50, 50), self.rect, border_radius=5)
-
-        # Desenhar barra preenchida
-        filled_width = int(self.rect.width * self.value)
-        filled_rect = pygame.Rect(
-            self.rect.x, self.rect.y, filled_width, self.rect.height
-        )
-        pygame.draw.rect(surface, COR_TITULO_1, filled_rect, border_radius=5)
-
-        # Desenhar círculo do slider
-        slider_x = self.rect.x + filled_width
-        pygame.draw.circle(surface, COR_BORDA_HOVER, (slider_x, self.rect.centery), 8)
-
-        # Desenhar percentual à direita
-        percent_text = self.fonte.render(f"{int(self.value * 100)}%", True, COR_TEXTO)
-        surface.blit(percent_text, (self.rect.right + 20, self.rect.y - 5))
-
-    def check_hover(self, mouse_pos):
-        slider_rect = pygame.Rect(
-            self.rect.x - 8,
-            self.rect.y - 8,
-            self.rect.width + 16,
-            self.rect.height + 16,
-        )
-        return slider_rect.collidepoint(mouse_pos)
-
-    def start_drag(self, mouse_pos):
-        if self.check_hover(mouse_pos):
-            self.dragging = True
-            self.update(mouse_pos)  # Atualizar imediatamente ao começar o drag
-
-    def stop_drag(self):
-        self.dragging = False
-
-    def update(self, mouse_pos):
-        if self.dragging:
-            # Calcular novo valor baseado na posição do mouse
-            relative_x = mouse_pos[0] - self.rect.x
-            self.value = max(0, min(1, relative_x / self.rect.width))
-
-
+# Caminhos de assets
 CAMINHO_SOM_LASER = os.path.join(
     os.path.dirname(__file__), "assets", "audios", "laser-shot.wav"
 )
@@ -143,6 +63,8 @@ CAMINHO_MUSICA_BOSS = os.path.join(
 CAMINHO_MUSICA_FASE_SECRETA = os.path.join(
     os.path.dirname(__file__), "assets", "audios", "trilha-sonora-fase-secreta.mp3"
 )
+
+# Sons (compatibilidade legada)
 SOM_LASER = pygame.mixer.Sound(CAMINHO_SOM_LASER)
 SOM_EXPLOSAO = pygame.mixer.Sound(CAMINHO_SOM_EXPLOSAO)
 SOM_VITORIA = pygame.mixer.Sound(CAMINHO_SOM_VITORIA)
@@ -152,6 +74,7 @@ SOM_EXPLOSAO.set_volume(0.4)
 SOM_VITORIA.set_volume(0.6)
 SOM_DERROTA.set_volume(0.6)
 
+# Tela e backgrounds
 TELA = pygame.display.set_mode((LARGURA, ALTURA))
 CAMINHO_BACKGROUND = os.path.join(
     os.path.dirname(__file__), "assets", "images", "background-fases-normais.png"
@@ -159,7 +82,6 @@ CAMINHO_BACKGROUND = os.path.join(
 BACKGROUND = pygame.image.load(CAMINHO_BACKGROUND)
 BACKGROUND = pygame.transform.scale(BACKGROUND, (LARGURA, ALTURA))
 
-# Background da Fase Secreta
 CAMINHO_BACKGROUND_CAOS = os.path.join(
     os.path.dirname(__file__), "assets", "images", "background-fase-secreta.png"
 )
@@ -179,12 +101,11 @@ BACKGROUND_MENU = pygame.transform.scale(BACKGROUND_MENU, (LARGURA, ALTURA))
 pygame.display.set_caption("Robot Defense - Template")
 clock = pygame.time.Clock()
 
+# Grupos de sprites (Demonstra: Grupos do Pygame)
 todos_sprites = pygame.sprite.Group()
 inimigos = pygame.sprite.Group()
 tiros = pygame.sprite.Group()
-# novo: grupo para tiros dos robôs
 tiros_inimigos = pygame.sprite.Group()
-# power-ups
 powerups = pygame.sprite.Group()
 
 POWERUP_CHANCE = 0.18
@@ -192,57 +113,36 @@ POWERUP_CHANCE = 0.18
 jogador = Jogador(LARGURA // 2, ALTURA - 60)
 todos_sprites.add(jogador)
 
+# Variáveis de estado do jogo
 pontos = 0
 temporizador_spawn = 0
-estado = "menu"  # menu, opcoes, jogando, pausado, game_over, vitoria, transicao_caos
-fade_alpha = 255  # Começa com tela preta para fade in inicial
-fade_direcao = -1  # -1 = fade in (clarear)
+estado = "menu"
+fade_alpha = 255
+fade_direcao = -1
 fase_atual = 1
-estado_anterior = None  # Para rastrear de onde veio para opções
-cadencia_tiro = 0  # cooldown para rajada automática
-musica_atual = None  # controle da música tocando
-musica_fade_out = False  # flag para fade out em progresso
-musica_proxima = None  # próxima música a tocar após fade
-musica_volume = 0.5  # volume atual da música
+# Inicialização dos gerenciadores
+gerenciador_fases = GerenciadorFases()
+
+estado_anterior = None
+cadencia_tiro = 0
+musica_atual = None
+musica_fade_out = False
+musica_proxima = None
+musica_volume = 0.5
 boss_ativo = False
 boss_spawnou = False
-inimigos_escapados = 0  # Contador para Easter Egg
-fase_caos_desbloqueada = False  # Flag para Fase do Caos
-timer_transicao_caos = 0  # Timer para a tela de transição
+inimigos_escapados = 0
+fase_caos_desbloqueada = False
+timer_transicao_caos = 0
 som_vitoria_tocado = False
 som_derrota_tocado = False
+musica_vitoria_tocada = False
 
-# Configuração de fases
-FASES = {
-    1: {
-        "nome": "Fase 1: Iniciante Orbital",
-        "duracao": 600,
-        "robos": ["lento", "rapido"],
-    },
-    2: {
-        "nome": "Fase 2: Patrulha Mediana",
-        "duracao": 700,
-        "robos": ["lento", "saltador", "ziguezague"],
-    },
-    3: {
-        "nome": "Fase 3: Investida Difícil",
-        "duracao": 900,
-        "robos": ["rapido", "cacador", "ciclico"],
-    },
-    4: {
-        "nome": "Fase 4: Boss Insano",
-        "duracao": 9999999,
-        "robos": [],
-    },
-    5: {
-        "nome": "Fase Secreta: Caos Total",
-        "duracao": 1800,  # 30 segundos de caos puro
-        "robos": ["lento", "rapido", "saltador", "ziguezague", "cacador", "ciclico"],
-    },
-}
-
+# As configurações de fases agora estão em PhaseManager.FASES
+FASES = GerenciadorFases.FASES  # Alias para compatibilidade
 
 def resetar_jogo():
+    """Reseta o estado do jogo para o início"""
     global \
         pontos, \
         temporizador_spawn, \
@@ -265,7 +165,10 @@ def resetar_jogo():
         inimigos_escapados, \
         fase_caos_desbloqueada, \
         som_vitoria_tocado, \
-        som_derrota_tocado
+        som_derrota_tocado, \
+        musica_vitoria_tocada
+    
+    # Reseta pontos e contadores
     pontos = 0
     temporizador_spawn = 0
     fase_atual = 1
@@ -276,35 +179,48 @@ def resetar_jogo():
     musica_fade_out = False
     musica_proxima = None
     musica_volume = 0.5
+    som_vitoria_tocado = False
+    som_derrota_tocado = False
+    musica_vitoria_tocada = False
+    
+    # Reseta gerenciador de fases
+    gerenciador_fases.resetar()
+    
+    # Limpa todos os grupos de sprites
     todos_sprites.empty()
     inimigos.empty()
     tiros.empty()
     tiros_inimigos.empty()
     powerups.empty()
+    
+    # Cria novo jogador
     jogador = Jogador(LARGURA // 2, ALTURA - 60)
     todos_sprites.add(jogador)
+    
     estado = "jogando"
     fade_alpha = 0
     fade_direcao = 0
-    som_vitoria_tocado = False
-    som_derrota_tocado = False
 
-    # Iniciar música de fundo das fases normais
+    # Iniciar música de fundo
     if os.path.exists(CAMINHO_MUSICA_BACKGROUND):
         pygame.mixer.music.load(CAMINHO_MUSICA_BACKGROUND)
         pygame.mixer.music.set_volume(0.5)
-        pygame.mixer.music.play(-1)  # loop infinito
+        pygame.mixer.music.play(-1)
         musica_atual = "background"
 
 
 def tocar_som_vitoria():
+    """Toca o som de vitória"""
+    global musica_vitoria_tocada
     pygame.mixer.music.stop()
     pygame.mixer.music.load(CAMINHO_SOM_VITORIA)
-    pygame.mixer.music.set_volume(sliders[0].value)
-    pygame.mixer.music.play(-1)
+    pygame.mixer.music.set_volume(controles[0].valor)
+    pygame.mixer.music.play(0)
+    musica_vitoria_tocada = True
 
 
 def tocar_som_derrota():
+    """Toca o som de derrota"""
     global som_derrota_tocado
     if not som_derrota_tocado:
         SOM_DERROTA.play()
@@ -312,6 +228,7 @@ def tocar_som_derrota():
 
 
 def acionar_game_over():
+    """Aciona o estado de game over"""
     global estado, fade_alpha, fade_direcao
     estado = "game_over"
     fade_alpha = 0
@@ -320,16 +237,22 @@ def acionar_game_over():
 
 
 def retangulo_jogador():
+    """Retorna o retângulo de colisão do jogador"""
     return jogador.hitbox if hasattr(jogador, "hitbox") else jogador.rect
 
 
 def spawnar_inimigos():
+    """
+    Spawna inimigos baseado na fase atual
+    Demonstra: Polimorfismo (diferentes tipos de robôs com mesmo comportamento base)
+    """
     global temporizador_spawn
-    fase = FASES[fase_atual]
+    
+    fase = gerenciador_fases.obter_info_fase()
     robos_permitidos = fase["robos"]
 
     # RoboLento
-    if "lento" in robos_permitidos and temporizador_spawn % 50 == 0:
+    if "lento" in robos_permitidos and temporizador_spawn % 38 == 0:
         robo = RoboLento(
             random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos
         )
@@ -337,7 +260,7 @@ def spawnar_inimigos():
         inimigos.add(robo)
 
     # RoboRapido
-    if "rapido" in robos_permitidos and temporizador_spawn % 60 == 0:
+    if "rapido" in robos_permitidos and temporizador_spawn % 46 == 0:
         robo = RoboRapido(
             random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos
         )
@@ -345,7 +268,7 @@ def spawnar_inimigos():
         inimigos.add(robo)
 
     # RoboSaltador
-    if "saltador" in robos_permitidos and temporizador_spawn % 75 == 0:
+    if "saltador" in robos_permitidos and temporizador_spawn % 58 == 0:
         robo = RoboSaltador(
             random.randint(40, LARGURA - 40), -40, grupo_tiros=tiros_inimigos
         )
@@ -353,7 +276,7 @@ def spawnar_inimigos():
         inimigos.add(robo)
 
     # RoboZigueZague
-    if "ziguezague" in robos_permitidos and temporizador_spawn % 80 == 0:
+    if "ziguezague" in robos_permitidos and temporizador_spawn % 62 == 0:
         robo = RoboZigueZague(
             random.randint(100, LARGURA - 100), -40, grupo_tiros=tiros_inimigos
         )
@@ -361,7 +284,7 @@ def spawnar_inimigos():
         inimigos.add(robo)
 
     # RoboCacador
-    if "cacador" in robos_permitidos and temporizador_spawn % 120 == 0:
+    if "cacador" in robos_permitidos and temporizador_spawn % 92 == 0:
         robo = RoboCacador(
             random.randint(40, LARGURA - 40), -60, jogador, grupo_tiros=tiros_inimigos
         )
@@ -369,7 +292,7 @@ def spawnar_inimigos():
         inimigos.add(robo)
 
     # RoboCiclico
-    if "ciclico" in robos_permitidos and temporizador_spawn % 90 == 0:
+    if "ciclico" in robos_permitidos and temporizador_spawn % 69 == 0:
         robo = RoboCiclico(
             random.randint(60, LARGURA - 60), -40, grupo_tiros=tiros_inimigos
         )
@@ -378,73 +301,60 @@ def spawnar_inimigos():
 
 
 def tentar_drop_powerup(inimigo):
-    """Chance de derrubar um power-up na posição do inimigo destruído."""
+    """
+    Chance de derrubar um power-up na posição do inimigo destruído
+    Demonstra: Uso de Factory Pattern (PowerUpFactory)
+    """
     if random.random() <= POWERUP_CHANCE:
-        tipo = gerar_tipo_powerup()
-        powerup = PowerUp(inimigo.rect.centerx, inimigo.rect.centery, tipo)
+        powerup = FabricaPowerUp.criar(inimigo.rect.centerx, inimigo.rect.centery)
         todos_sprites.add(powerup)
         powerups.add(powerup)
 
 
-# Carregar fonte para os botões do menu
+# Carregar fontes para interface
 CAMINHO_FONTE_MENU = os.path.join(
     os.path.dirname(__file__), "assets", "fonts", "PressStart2P-Regular.ttf"
 )
 try:
     fonte_botoes_menu = pygame.font.Font(CAMINHO_FONTE_MENU, 16)
+    fonte_controle = pygame.font.Font(CAMINHO_FONTE_MENU, 14)
 except:
     fonte_botoes_menu = pygame.font.SysFont("arial", 16, bold=True)
+    fonte_controle = pygame.font.SysFont("arial", 14, bold=True)
 
-# Criar botões do menu
-botoes_menu = [
-    Button("INICIAR JOGO", LARGURA // 2 - 125, 420, 250, 50, fonte_botoes_menu),
-    Button("OPÇÕES", LARGURA // 2 - 125, 480, 250, 50, fonte_botoes_menu),
-    Button("SAIR", LARGURA // 2 - 125, 540, 250, 50, fonte_botoes_menu),
-]
+# Inicializar gerenciador de menu
+gerenciador_menu = GerenciadorMenu(fonte_botoes_menu, fonte_controle)
 
-# Criar sliders para opções
-try:
-    fonte_slider = pygame.font.Font(CAMINHO_FONTE_MENU, 14)
-except:
-    fonte_slider = pygame.font.SysFont("arial", 14, bold=True)
-
-sliders = [
-    Slider(LARGURA // 2, 420, 200, 20, "VOLUME MUSICA  ", fonte_slider),
-    Slider(LARGURA // 2, 550, 200, 20, "VOLUME EFEITOS", fonte_slider),
-]
-
-# Botão voltar no menu de opções
-botao_voltar = Button("VOLTAR", LARGURA // 2 - 75, 600, 150, 50, fonte_botoes_menu)
-
-# Criar botões do menu de pausa
-botoes_pausa = [
-    Button("CONTINUAR", LARGURA // 2 - 125, 320, 250, 50, fonte_botoes_menu),
-    Button("OPÇÕES", LARGURA // 2 - 125, 380, 250, 50, fonte_botoes_menu),
-    Button("SAIR", LARGURA // 2 - 125, 440, 250, 50, fonte_botoes_menu),
-]
-
-# Botão voltar no game over e vitória
-botao_voltar_menu = Button(
-    "VOLTAR AO MENU", LARGURA // 2 - 125, 420, 250, 50, fonte_botoes_menu
-)
-botao_vitoria_rejogar = Button(
-    "JOGAR NOVAMENTE", LARGURA // 2 - 280, ALTURA // 2 + 80, 290, 50, fonte_botoes_menu
-)
-botao_vitoria_menu = Button(
-    "MENU", LARGURA // 2 + 80, ALTURA // 2 + 80, 200, 50, fonte_botoes_menu
-)
+# Atalhos para elementos do menu (compatibilidade)
+botoes_menu = gerenciador_menu.botoes_menu
+controles = gerenciador_menu.controles
+botao_voltar = gerenciador_menu.botao_voltar
+botoes_pausa = gerenciador_menu.botoes_pausa
+botao_voltar_menu = gerenciador_menu.botao_voltar_menu
+botao_vitoria_rejogar = gerenciador_menu.botao_vitoria_rejogar
+botao_vitoria_menu = gerenciador_menu.botao_vitoria_menu
 
 rodando = True
 musica_menu_tocando = False
+musica_vitoria_tocada = False  # Controla se a música de vitória já começou
 
 while rodando:
     clock.tick(FPS)
 
-    if estado in ["menu", "opcoes", "pausado"]:
+    if estado == "vitoria":
+        # Detectar quando o som de vitória terminou
+        if musica_vitoria_tocada and not pygame.mixer.music.get_busy():
+            # Som terminou, tocar música do menu
+            if not musica_menu_tocando and os.path.exists(CAMINHO_MUSICA_MENU):
+                pygame.mixer.music.load(CAMINHO_MUSICA_MENU)
+                pygame.mixer.music.set_volume(controles[0].valor)
+                pygame.mixer.music.play(-1)
+                musica_menu_tocando = True
+    elif estado in ["menu", "opcoes", "pausado"]:
         if not musica_menu_tocando and os.path.exists(CAMINHO_MUSICA_MENU):
             pygame.mixer.music.stop()
             pygame.mixer.music.load(CAMINHO_MUSICA_MENU)
-            pygame.mixer.music.set_volume(sliders[0].value)
+            pygame.mixer.music.set_volume(controles[0].valor)
             pygame.mixer.music.play(-1)
             musica_menu_tocando = True
     else:
@@ -460,39 +370,39 @@ while rodando:
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
                 for btn in botoes_menu:
-                    if btn.is_clicked(mouse_pos):
-                        if btn.text == "INICIAR JOGO":
+                    if btn.foi_clicado(mouse_pos):
+                        if btn.texto == "INICIAR JOGO":
                             resetar_jogo()
-                        elif btn.text == "OPÇÕES":
+                        elif btn.texto == "OPÇÕES":
                             estado = "opcoes"
-                        elif btn.text == "SAIR":
+                        elif btn.texto == "SAIR":
                             rodando = False
             elif event.type == pygame.MOUSEBUTTONUP:
-                for slider in sliders:
-                    slider.stop_drag()
+                for controle in controles:
+                    controle.parar_arraste()
 
         elif estado == "opcoes":
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
-                if botao_voltar.is_clicked(mouse_pos):
+                if botao_voltar.foi_clicado(mouse_pos):
                     estado = estado_anterior if estado_anterior else "menu"
                     estado_anterior = None
-                for slider in sliders:
-                    slider.start_drag(mouse_pos)
+                for controle in controles:
+                    controle.iniciar_arraste(mouse_pos)
             elif event.type == pygame.MOUSEBUTTONUP:
-                for slider in sliders:
-                    slider.stop_drag()
+                for controle in controles:
+                    controle.parar_arraste()
             elif event.type == pygame.MOUSEMOTION:
                 mouse_pos = pygame.mouse.get_pos()
-                # Apenas atualizar sliders que estão sendo arrastados
-                for i, slider in enumerate(sliders):
-                    slider.update(mouse_pos)
-                # Atualizar volumes em tempo real baseado em cada slider
-                pygame.mixer.music.set_volume(sliders[0].value)
-                SOM_LASER.set_volume(sliders[1].value)
-                SOM_EXPLOSAO.set_volume(sliders[1].value)
-                SOM_VITORIA.set_volume(sliders[1].value)
-                SOM_DERROTA.set_volume(sliders[1].value)
+                # Apenas atualizar controles que estão sendo arrastados
+                for i, controle in enumerate(controles):
+                    controle.atualizar(mouse_pos)
+                # Atualizar volumes em tempo real baseado em cada controle
+                pygame.mixer.music.set_volume(controles[0].valor)
+                SOM_LASER.set_volume(controles[1].valor)
+                SOM_EXPLOSAO.set_volume(controles[1].valor)
+                SOM_VITORIA.set_volume(controles[1].valor)
+                SOM_DERROTA.set_volume(controles[1].valor)
 
         elif estado == "jogando":
             if event.type == pygame.KEYDOWN:
@@ -535,6 +445,7 @@ while rodando:
         if timer_transicao_caos >= 240:
             estado = "jogando"
             fase_atual = 5
+            gerenciador_fases.fase_atual = 5
             temporizador_spawn = 0
 
             # Power-ups especiais no início
@@ -563,6 +474,7 @@ while rodando:
                 tocar_som_vitoria()
             elif fase_atual < len(FASES):
                 fase_atual += 1
+                gerenciador_fases.fase_atual = fase_atual
                 temporizador_spawn = 0
 
             # Spawnar boss ao entrar na fase 4
@@ -607,24 +519,28 @@ while rodando:
                         -40,
                         grupo_tiros=tiros_inimigos,
                     )
+                    robo.vida = 1  # Ruins: 1 vida
                 elif tipo_escolhido == "rapido":
                     robo = RoboRapido(
                         random.randint(40, LARGURA - 40),
                         -40,
                         grupo_tiros=tiros_inimigos,
                     )
+                    robo.vida = 2  # Médios: 2 vidas
                 elif tipo_escolhido == "saltador":
                     robo = RoboSaltador(
                         random.randint(40, LARGURA - 40),
                         -40,
                         grupo_tiros=tiros_inimigos,
                     )
+                    robo.vida = 2  # Médios: 2 vidas
                 elif tipo_escolhido == "ziguezague":
                     robo = RoboZigueZague(
                         random.randint(100, LARGURA - 100),
                         -40,
                         grupo_tiros=tiros_inimigos,
                     )
+                    robo.vida = 2  # Médios: 2 vidas
                 elif tipo_escolhido == "cacador":
                     robo = RoboCacador(
                         random.randint(40, LARGURA - 40),
@@ -632,12 +548,14 @@ while rodando:
                         jogador,
                         grupo_tiros=tiros_inimigos,
                     )
+                    robo.vida = 3  # Melhores: 3 vidas
                 else:  # ciclico
                     robo = RoboCiclico(
                         random.randint(60, LARGURA - 60),
                         -40,
                         grupo_tiros=tiros_inimigos,
                     )
+                    robo.vida = 3  # Melhores: 3 vidas
 
                 todos_sprites.add(robo)
                 inimigos.add(robo)
@@ -694,28 +612,41 @@ while rodando:
 
                                 musica_fade_out = True
                                 musica_proxima = "fase_secreta"
+
+                                SOM_EXPLOSAO.play()
+
+                                # TROCAR MÚSICA (fade)
+                                musica_fade_out = True
+                                musica_proxima = "fase_secreta"
+
+                                SOM_EXPLOSAO.play()
                             else:
                                 # Vitória normal (sem fase secreta)
                                 estado = "vitoria"
                                 fade_alpha = 0
                                 fade_direcao = 1
+                                pygame.mixer.music.stop()
                                 tocar_som_vitoria()
 
-                            SOM_EXPLOSAO.play()
-
-                            # TROCAR MÚSICA (fade)
-                            musica_fade_out = True
-                            musica_proxima = "fase_secreta"
-
-                            SOM_EXPLOSAO.play()
-
                     else:
-                        explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
-                        todos_sprites.add(explosao)
-                        inimigo.kill()
-                        pontos += 1
-                        tentar_drop_powerup(inimigo)
-                        SOM_EXPLOSAO.play()
+                        # Verificar se o inimigo tem sistema de vida (fase caótica)
+                        if hasattr(inimigo, 'vida'):
+                            inimigo.vida -= 1
+                            if inimigo.vida <= 0:
+                                explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
+                                todos_sprites.add(explosao)
+                                inimigo.kill()
+                                pontos += 1
+                                tentar_drop_powerup(inimigo)
+                                SOM_EXPLOSAO.play()
+                        else:
+                            # Inimigos normais (sem vida) morrem em um hit
+                            explosao = Explosao(inimigo.rect.centerx, inimigo.rect.centery)
+                            todos_sprites.add(explosao)
+                            inimigo.kill()
+                            pontos += 1
+                            tentar_drop_powerup(inimigo)
+                            SOM_EXPLOSAO.play()
 
             # colisão tiro jogador x tiro inimigo -> ambos somem
             pygame.sprite.groupcollide(tiros, tiros_inimigos, True, True)
@@ -826,8 +757,8 @@ while rodando:
         # Atualizar e desenhar botões
         mouse_pos = pygame.mouse.get_pos()
         for btn in botoes_menu:
-            btn.check_hover(mouse_pos)
-            btn.draw(TELA)
+            btn.verificar_destaque(mouse_pos)
+            btn.desenhar(TELA)
 
     elif estado == "jogando":
         if fase_atual == 5:
@@ -922,8 +853,8 @@ while rodando:
         # Desenhar botões de pausa
         mouse_pos = pygame.mouse.get_pos()
         for btn in botoes_pausa:
-            btn.check_hover(mouse_pos)
-            btn.draw(TELA)
+            btn.verificar_destaque(mouse_pos)
+            btn.desenhar(TELA)
 
     elif estado == "game_over":
         TELA.blit(BACKGROUND_MENU, (0, 0))
@@ -984,8 +915,8 @@ while rodando:
 
         # Botão voltar ao menu
         mouse_pos = pygame.mouse.get_pos()
-        botao_voltar_menu.check_hover(mouse_pos)
-        botao_voltar_menu.draw(TELA)
+        botao_voltar_menu.verificar_destaque(mouse_pos)
+        botao_voltar_menu.desenhar(TELA)
 
     elif estado == "transicao_caos":
         # Tela de Transição para Fase Secreta
@@ -1052,14 +983,14 @@ while rodando:
             (LARGURA // 2 - titulo_opcoes.get_width() // 2, ALTURA // 2 - 125),
         )
 
-        # Desenhar sliders
-        for slider in sliders:
-            slider.draw(TELA)
+        # Desenhar controles
+        for controle in controles:
+            controle.desenhar(TELA)
 
         # Desenhar botão voltar
         mouse_pos = pygame.mouse.get_pos()
-        botao_voltar.check_hover(mouse_pos)
-        botao_voltar.draw(TELA)
+        botao_voltar.verificar_destaque(mouse_pos)
+        botao_voltar.desenhar(TELA)
 
     elif estado == "vitoria":
         TELA.blit(BACKGROUND_MENU, (0, 0))
@@ -1125,10 +1056,10 @@ while rodando:
         botao_vitoria_menu.rect.centerx = card_rect.centerx
 
         mouse_pos = pygame.mouse.get_pos()
-        botao_vitoria_rejogar.check_hover(mouse_pos)
-        botao_vitoria_menu.check_hover(mouse_pos)
-        botao_vitoria_rejogar.draw(TELA)
-        botao_vitoria_menu.draw(TELA)
+        botao_vitoria_rejogar.verificar_destaque(mouse_pos)
+        botao_vitoria_menu.verificar_destaque(mouse_pos)
+        botao_vitoria_rejogar.desenhar(TELA)
+        botao_vitoria_menu.desenhar(TELA)
 
     # Fade overlay global (para todas as transições)
     if fade_alpha > 0:
