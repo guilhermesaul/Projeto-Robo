@@ -1071,42 +1071,66 @@ while rodando:
         fonte_grande = pygame.font.Font(CAMINHO_FONTE, 36)
         fonte_media = pygame.font.Font(CAMINHO_FONTE, 22)
 
-        card_rect = pygame.Rect(LARGURA // 2 - 280, ALTURA // 2 - 200, 560, 370)
+        titulo_base = fonte_grande.render("VITÓRIA", True, (0, 255, 170))
+        texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
+
+        texto_extra_surface = None
+        if fase_caos_desbloqueada:
+            texto_extra_surface = fonte_media.render(
+                "Dominou a Fase Secreta!", True, (255, 255, 255)
+            )
+
+        maior_largura = max(
+            titulo_base.get_width(),
+            texto_pontos.get_width(),
+            texto_extra_surface.get_width() if texto_extra_surface else 0,
+        )
+        card_largura = max(520, maior_largura + 160)
+        card_altura = 340 if texto_extra_surface else 300
+        card_rect = pygame.Rect(
+            LARGURA // 2 - card_largura // 2,
+            ALTURA // 2 - card_altura // 2,
+            card_largura,
+            card_altura,
+        )
+
         pygame.draw.rect(TELA, (25, 30, 65), card_rect, border_radius=16)
         pygame.draw.rect(TELA, COR_TITULO_2, card_rect, 4, border_radius=16)
 
-        titulo_base = fonte_grande.render("VITÓRIA", True, (0, 255, 170))
         pulso = 1 + 0.04 * math.sin(pygame.time.get_ticks() * 0.005)
-        titulo_size = (
-            max(1, int(titulo_base.get_width() * pulso)),
-            max(1, int(titulo_base.get_height() * pulso)),
+        titulo_surface = pygame.transform.smoothscale(
+            titulo_base,
+            (
+                max(1, int(titulo_base.get_width() * pulso)),
+                max(1, int(titulo_base.get_height() * pulso)),
+            ),
         )
-        titulo_surface = pygame.transform.smoothscale(titulo_base, titulo_size)
-        titulo_rect = titulo_surface.get_rect(center=(LARGURA // 2, card_rect.top + 70))
+        titulo_rect = titulo_surface.get_rect(center=(card_rect.centerx, card_rect.top + 70))
         TELA.blit(titulo_surface, titulo_rect)
 
-        if fase_caos_desbloqueada:
-            texto_extra = fonte_media.render(
-                "Você dominou a Fase Secreta!", True, (255, 255, 255)
-            )
-            TELA.blit(
-                texto_extra,
-                (LARGURA // 2 - texto_extra.get_width() // 2, card_rect.top + 140),
-            )
+        texto_y = titulo_rect.bottom + 30
+        if texto_extra_surface:
+            texto_extra_rect = texto_extra_surface.get_rect(center=(card_rect.centerx, texto_y))
+            TELA.blit(texto_extra_surface, texto_extra_rect)
+            texto_y = texto_extra_rect.bottom + 20
 
-        texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
-        TELA.blit(
-            texto_pontos,
-            (LARGURA // 2 - texto_pontos.get_width() // 2, card_rect.top + 190),
-        )
+        texto_pontos_rect = texto_pontos.get_rect(center=(card_rect.centerx, texto_y))
+        TELA.blit(texto_pontos, texto_pontos_rect)
 
+        linha_y = texto_pontos_rect.bottom + 30
         pygame.draw.line(
             TELA,
             (255, 255, 255),
-            (card_rect.left + 40, card_rect.top + 230),
-            (card_rect.right - 40, card_rect.top + 230),
+            (card_rect.left + 40, linha_y),
+            (card_rect.right - 40, linha_y),
             1,
         )
+
+        botoes_y = linha_y + 25
+        botao_vitoria_rejogar.rect.centery = botoes_y
+        botao_vitoria_menu.rect.centery = botoes_y
+        botao_vitoria_rejogar.rect.centerx = card_rect.centerx - 120
+        botao_vitoria_menu.rect.centerx = card_rect.centerx + 120
 
         mouse_pos = pygame.mouse.get_pos()
         botao_vitoria_rejogar.check_hover(mouse_pos)
