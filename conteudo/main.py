@@ -911,28 +911,62 @@ while rodando:
 
     elif estado == "game_over":
         TELA.blit(BACKGROUND_MENU, (0, 0))
-        # Tela de Game Over
-        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 36)
-        fonte_media = pygame.font.Font(CAMINHO_FONTE, 20)
-        texto_gameover = fonte_grande.render("GAME OVER", True, (255, 0, 0))
-        texto_pontos = fonte_media.render(f"Pontuação: {pontos}", True, (255, 255, 255))
 
-        # overlay escuro
+        # Overlay escuro
         overlay = pygame.Surface((LARGURA, ALTURA))
-        overlay.set_alpha(180)
+        overlay.set_alpha(190)
         overlay.fill((0, 0, 0))
         TELA.blit(overlay, (0, 0))
 
+        fonte_grande = pygame.font.Font(CAMINHO_FONTE, 36)
+        fonte_media = pygame.font.Font(CAMINHO_FONTE, 20)
+
+        # Card central
+        card_rect = pygame.Rect(LARGURA // 2 - 280, ALTURA // 2 - 200, 560, 350)
+        pygame.draw.rect(TELA, (40, 20, 30), card_rect, border_radius=16)
+        pygame.draw.rect(TELA, (255, 80, 80), card_rect, 4, border_radius=16)
+
+        # Título com pulsação
+        titulo_base = fonte_grande.render("DERROTA", True, (255, 60, 60))
+        pulso = 1 + 0.05 * math.sin(pygame.time.get_ticks() * 0.005)
+        titulo_size = (
+            int(titulo_base.get_width() * pulso),
+            int(titulo_base.get_height() * pulso),
+        )
+        titulo_surface = pygame.transform.smoothscale(titulo_base, titulo_size)
+        titulo_rect = titulo_surface.get_rect(
+            center=(LARGURA // 2, card_rect.top + 70)
+        )
+        TELA.blit(titulo_surface, titulo_rect)
+
+        # Texto secundário
+        texto_msg = fonte_media.render(
+            "Seu robô foi destruído!", True, (220, 220, 220)
+        )
         TELA.blit(
-            texto_gameover,
-            (LARGURA // 2 - texto_gameover.get_width() // 2, ALTURA // 2 - 120),
+            texto_msg,
+            (LARGURA // 2 - texto_msg.get_width() // 2, card_rect.top + 120),
+        )
+
+        # Pontuação
+        texto_pontos = fonte_media.render(
+        f"Pontuação Final: {pontos}", True, (255, 255, 255)
         )
         TELA.blit(
             texto_pontos,
-            (LARGURA // 2 - texto_pontos.get_width() // 2, ALTURA // 2 - 40),
+            (LARGURA // 2 - texto_pontos.get_width() // 2, card_rect.top + 170),
         )
 
-        # Desenhar botão voltar
+        # Linha decorativa
+        pygame.draw.line(
+            TELA,
+            (120, 120, 120),
+            (card_rect.left + 40, card_rect.top + 210),
+            (card_rect.right - 40, card_rect.top + 210),
+            1,
+        )
+
+        # Botão voltar ao menu
         mouse_pos = pygame.mouse.get_pos()
         botao_voltar_menu.check_hover(mouse_pos)
         botao_voltar_menu.draw(TELA)
