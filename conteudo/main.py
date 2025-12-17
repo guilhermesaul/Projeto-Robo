@@ -428,10 +428,10 @@ botao_voltar_menu = Button(
     "VOLTAR AO MENU", LARGURA // 2 - 125, 420, 250, 50, fonte_botoes_menu
 )
 botao_vitoria_rejogar = Button(
-    "JOGAR NOVAMENTE", LARGURA // 2 - 250, ALTURA // 2 + 80, 240, 50, fonte_botoes_menu
+    "JOGAR NOVAMENTE", LARGURA // 2 - 280, ALTURA // 2 + 80, 290, 50, fonte_botoes_menu
 )
 botao_vitoria_menu = Button(
-    "MENU", LARGURA // 2 + 30, ALTURA // 2 + 80, 180, 50, fonte_botoes_menu
+    "MENU", LARGURA // 2 + 80, ALTURA // 2 + 80, 200, 50, fonte_botoes_menu
 )
 
 rodando = True
@@ -1117,20 +1117,12 @@ while rodando:
         texto_pontos_rect = texto_pontos.get_rect(center=(card_rect.centerx, texto_y))
         TELA.blit(texto_pontos, texto_pontos_rect)
 
-        linha_y = texto_pontos_rect.bottom + 30
-        pygame.draw.line(
-            TELA,
-            (255, 255, 255),
-            (card_rect.left + 40, linha_y),
-            (card_rect.right - 40, linha_y),
-            1,
-        )
-
-        botoes_y = linha_y + 25
-        botao_vitoria_rejogar.rect.centery = botoes_y
-        botao_vitoria_menu.rect.centery = botoes_y
-        botao_vitoria_rejogar.rect.centerx = card_rect.centerx - 120
-        botao_vitoria_menu.rect.centerx = card_rect.centerx + 120
+        # Posicionar botões com melhor espaçamento
+        botoes_y = texto_pontos_rect.bottom + 40
+        botao_vitoria_rejogar.rect.y = botoes_y
+        botao_vitoria_menu.rect.y = botoes_y + 70
+        botao_vitoria_rejogar.rect.centerx = card_rect.centerx
+        botao_vitoria_menu.rect.centerx = card_rect.centerx
 
         mouse_pos = pygame.mouse.get_pos()
         botao_vitoria_rejogar.check_hover(mouse_pos)
