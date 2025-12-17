@@ -298,10 +298,10 @@ def resetar_jogo():
 
 
 def tocar_som_vitoria():
-    global som_vitoria_tocado
-    if not som_vitoria_tocado:
-        SOM_VITORIA.play()
-        som_vitoria_tocado = True
+    pygame.mixer.music.stop()
+    pygame.mixer.music.load(CAMINHO_SOM_VITORIA)
+    pygame.mixer.music.set_volume(sliders[0].value)
+    pygame.mixer.music.play(-1)
 
 
 def tocar_som_derrota():
