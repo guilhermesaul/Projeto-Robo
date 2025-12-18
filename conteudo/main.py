@@ -98,7 +98,7 @@ CAMINHO_MUSICA_MENU = os.path.join(
 BACKGROUND_MENU = pygame.image.load(CAMINHO_BACKGROUND_MENU).convert()
 BACKGROUND_MENU = pygame.transform.scale(BACKGROUND_MENU, (LARGURA, ALTURA))
 
-pygame.display.set_caption("Robot Defense - Template")
+pygame.display.set_caption("Jornada Cósmica: Robot Defense")
 clock = pygame.time.Clock()
 
 # Grupos de sprites (Demonstra: Grupos do Pygame)
